@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://bossfight.onrender.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline';">
     <title>AR Camera Access</title>
     <style>
         body {
@@ -48,7 +49,7 @@
     <button id="startButton">START AR</button>
 
     <script type="module">
-        import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js';
+        import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js';
 
         let container;
         let camera, scene, renderer;
@@ -135,6 +136,8 @@
             
             // Add session end event listener
             session.addEventListener('end', onSessionEnded);
+            
+            console.log('AR session successfully started on bossfight.onrender.com');
         }
 
         function onSessionEnded() {
