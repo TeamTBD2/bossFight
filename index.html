@@ -1,153 +1,186 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://bossfight.onrender.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline';">
-    <title>AR Camera Access</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR.js Camera Access</title>
+    <!-- Import A-Frame -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
+    <!-- Import AR.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ar.js/2.4.0/aframe-ar.min.js"></script>
     <style>
         body {
             margin: 0;
-            padding: 0;
             overflow: hidden;
-            font-family: Arial, sans-serif;
         }
-        #container {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-        }
-        #startButton {
-            position: absolute;
-            bottom: 20px;
+        .centered {
+            position: fixed;
+            top: 50%;
             left: 50%;
-            transform: translateX(-50%);
-            padding: 12px 24px;
-            background-color: #4285f4;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-family: Arial, sans-serif;
+            z-index: 999;
+        }
+        .hidden {
+            display: none;
+        }
+        #startButton, #reloadButton {
+            padding: 10px 20px;
+            background-color: #4CAF50;
             color: white;
             border: none;
-            border-radius: 4px;
-            font-size: 16px;
+            border-radius: 5px;
             cursor: pointer;
-            z-index: 10;
+            font-size: 16px;
+            margin: 10px;
         }
-        #info {
-            position: absolute;
-            top: 20px;
-            width: 100%;
-            text-align: center;
-            color: white;
-            background-color: rgba(0, 0, 0, 0.5);
-            padding: 10px 0;
-            z-index: 10;
+        #startButton:hover, #reloadButton:hover {
+            background-color: #45a049;
+        }
+        .error {
+            color: #ff6b6b;
+            margin-top: 15px;
+        }
+        #compatibilityInfo {
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        #checkingCompat {
+            margin-top: 10px;
+            font-style: italic;
         }
     </style>
 </head>
+
 <body>
-    <div id="container"></div>
-    <div id="info">WebXR AR Camera Access</div>
-    <button id="startButton">START AR</button>
+    <div id="startScreen" class="centered">
+        <h2>AR Camera Access</h2>
+        <p>This app requires camera access to display AR content.</p>
+        <div id="checkingCompat">Checking device compatibility...</div>
+        <div id="compatibilityInfo" class="hidden"></div>
+        <div id="errorMessage" class="error hidden"></div>
+        <button id="startButton" disabled>Start AR Experience</button>
+        <button id="reloadButton" class="hidden">Reload Page</button>
+    </div>
 
-    <script type="module">
-        import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js';
+    <!-- A-Frame scene will be initialized here when the user clicks the start button -->
+    <div id="arScene" class="hidden">
+        <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix;">
+            <!-- Just the camera without any markers for now -->
+            <a-entity camera></a-entity>
+        </a-scene>
+    </div>
 
-        let container;
-        let camera, scene, renderer;
-        let controller;
-
-        // Check if WebXR is available
-        if ('xr' in navigator) {
-            navigator.xr.isSessionSupported('immersive-ar').then(function(supported) {
-                if (supported) {
-                    document.getElementById('info').innerHTML = 'WebXR AR is supported on your device!';
-                    init();
-                } else {
-                    document.getElementById('info').innerHTML = 'WebXR AR is not supported on your device.';
-                }
-            });
-        } else {
-            document.getElementById('info').innerHTML = 'WebXR is not available on your browser.';
+    <script>
+        // DOM elements
+        const startButton = document.getElementById('startButton');
+        const reloadButton = document.getElementById('reloadButton');
+        const compatInfo = document.getElementById('compatibilityInfo');
+        const errorMessage = document.getElementById('errorMessage');
+        const checkingCompat = document.getElementById('checkingCompat');
+        
+        // Check WebRTC availability (needed for camera access)
+        function checkWebRTC() {
+            return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
         }
-
-        function init() {
-            container = document.getElementById('container');
-
-            // Scene setup
-            scene = new THREE.Scene();
-
-            // Camera setup
-            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
-
-            // Renderer setup
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setPixelRatio(window.devicePixelRatio);
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.xr.enabled = true;
-            container.appendChild(renderer.domElement);
-
-            // Light
-            const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
-            light.position.set(0.5, 1, 0.25);
-            scene.add(light);
-
-            // Controller
-            controller = renderer.xr.getController(0);
-            scene.add(controller);
-
-            // Start button
-            document.getElementById('startButton').addEventListener('click', onStartAR);
-
-            // Window resize handler
-            window.addEventListener('resize', onWindowResize);
-
-            // Start the animation loop
-            renderer.setAnimationLoop(render);
+        
+        // Check if running on a mobile device
+        function isMobile() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         }
-
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+        
+        // Check if the browser supports WebGL (required for AR.js)
+        function checkWebGL() {
+            const canvas = document.createElement('canvas');
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            return !!gl;
         }
-
-        function onStartAR() {
-            // XR session options - request camera access
-            const sessionOptions = {
-                requiredFeatures: ['camera-access'],
-                optionalFeatures: ['dom-overlay'],
-                domOverlay: { root: document.getElementById('container') }
-            };
-
-            // Request an AR session
-            navigator.xr.requestSession('immersive-ar', sessionOptions)
-                .then(onSessionStarted)
-                .catch(error => {
-                    console.error('Failed to start AR session:', error);
-                    document.getElementById('info').innerHTML = 'Error starting AR: ' + error.message;
+        
+        // Check browser compatibility
+        function checkBrowserCompatibility() {
+            const isWebRTCSupported = checkWebRTC();
+            const isWebGLSupported = checkWebGL();
+            const isMobileDevice = isMobile();
+            
+            let compatibilityMessage = '';
+            let isCompatible = true;
+            
+            if (!isWebRTCSupported) {
+                compatibilityMessage += '❌ Your browser does not support camera access (WebRTC)<br>';
+                isCompatible = false;
+            } else {
+                compatibilityMessage += '✅ Camera access supported<br>';
+            }
+            
+            if (!isWebGLSupported) {
+                compatibilityMessage += '❌ Your browser does not support WebGL (required for AR)<br>';
+                isCompatible = false;
+            } else {
+                compatibilityMessage += '✅ WebGL supported<br>';
+            }
+            
+            if (!isMobileDevice) {
+                compatibilityMessage += '⚠️ Not detected as a mobile device (AR works best on mobile)<br>';
+            } else {
+                compatibilityMessage += '✅ Mobile device detected<br>';
+            }
+            
+            compatInfo.innerHTML = compatibilityMessage;
+            compatInfo.classList.remove('hidden');
+            checkingCompat.classList.add('hidden');
+            
+            if (isCompatible) {
+                startButton.disabled = false;
+                compatibilityMessage += '<br>✅ Your device appears compatible with AR.js!';
+            } else {
+                errorMessage.textContent = 'Your device or browser may not be compatible with AR.js';
+                errorMessage.classList.remove('hidden');
+                reloadButton.classList.remove('hidden');
+            }
+        }
+        
+        // Initialize camera
+        function initCamera() {
+            // Test camera access first
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+                .then(function(stream) {
+                    // Camera access successful, we can stop the test stream
+                    stream.getTracks().forEach(track => track.stop());
+                    
+                    // Hide the start screen and show AR scene
+                    document.getElementById('startScreen').classList.add('hidden');
+                    const arScene = document.getElementById('arScene');
+                    arScene.classList.remove('hidden');
+                    
+                    console.log('AR camera initialized');
+                })
+                .catch(function(error) {
+                    console.error('Camera access error:', error);
+                    errorMessage.textContent = 'Could not access camera: ' + (error.message || 'Permission denied');
+                    errorMessage.classList.remove('hidden');
+                    reloadButton.classList.remove('hidden');
                 });
         }
-
-        function onSessionStarted(session) {
-            document.getElementById('info').innerHTML = 'AR session started!';
-            document.getElementById('startButton').style.display = 'none';
-            
-            // Set up the XR session with the renderer
-            renderer.xr.setSession(session);
-            
-            // Add session end event listener
-            session.addEventListener('end', onSessionEnded);
-            
-            console.log('AR session successfully started on bossfight.onrender.com');
-        }
-
-        function onSessionEnded() {
-            document.getElementById('info').innerHTML = 'AR session ended.';
-            document.getElementById('startButton').style.display = 'block';
-        }
-
-        function render() {
-            renderer.render(scene, camera);
-        }
+        
+        // Run compatibility check on page load
+        window.addEventListener('load', function() {
+            setTimeout(checkBrowserCompatibility, 1000); // Slight delay for better UX
+        });
+        
+        // Add event listener to start button
+        startButton.addEventListener('click', initCamera);
+        
+        // Add event listener to reload button
+        reloadButton.addEventListener('click', function() {
+            location.reload();
+        });
     </script>
 </body>
+
 </html>
