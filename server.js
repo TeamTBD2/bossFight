@@ -1,6 +1,12 @@
-// Simple Express server for serving static files on Render
-const express = require('express');
-const path = require('path');
+// Simple Express server for serving static files on Render using ES Modules
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
