@@ -3,63 +3,33 @@
 
 <head>
     <meta charset="UTF-8" />
-    <title>WebXR AR Camera Feed</title>
+    <title>AR.js Sphere Example</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ar.js@3.4.2/aframe/build/aframe-ar.min.js"></script>
     <style>
         body {
             margin: 0;
             overflow: hidden;
         }
-
-        canvas {
-            display: block;
-        }
     </style>
 </head>
 
 <body>
-    <!-- Add the WebXR Polyfill script -->
-    <script src="https://cdn.jsdelivr.net/npm/webxr-polyfill"></script>
-    <script>
-        const polyfill = new WebXRPolyfill();
-    </script>
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+        <!-- Light -->
+        <a-entity light="type: directional; color: #ffffff; intensity: 0.8" position="0 1 0"></a-entity>
 
-    <script type="module">
-        import * as THREE from 'https://cdn.skypack.dev/three@0.150.1';
-        import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/webxr/ARButton.js';
+        <!-- Marker -->
+        <a-marker preset="hiro">
+            <!-- Red Sphere -->
+            <a-sphere position="0 0.5 0" radius="0.2" color="#ff0000" segments-height="18"
+                segments-width="36"></a-sphere>
+        </a-marker>
 
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera();
-
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.xr.enabled = true;
-        renderer.xr.setReferenceSpaceType('local');
-        document.body.appendChild(renderer.domElement);
-
-        // Add AR Button
-        document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
-
-        // Create a red sphere
-        const geometry = new THREE.SphereGeometry(0.1, 32, 32); // radius, widthSegments, heightSegments
-        const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
-        const sphere = new THREE.Mesh(geometry, material);
-
-        sphere.position.set(0, 0, -0.5); // half a meter in front of the camera
-        scene.add(sphere);
-
-        // Lighting
-        const light = new THREE.HemisphereLight(0xffffff, 0x444444);
-        scene.add(light);
-
-        function animate() {
-            renderer.setAnimationLoop(() => {
-                renderer.render(scene, camera);
-            });
-        }
-
-        animate();
-    </script>
+        <!-- Required camera -->
+        <a-entity camera></a-entity>
+    </a-scene>
 </body>
 
 </html>
