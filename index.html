@@ -1,35 +1,71 @@
 <!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8" />
-    <title>AR.js Sphere Example</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/ar.js@3.4.2/aframe/build/aframe-ar.min.js"></script>
-    <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-        }
-    </style>
-</head>
-
-<body>
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
-        <!-- Light -->
-        <a-entity light="type: directional; color: #ffffff; intensity: 0.8" position="0 1 0"></a-entity>
-
-        <!-- Marker -->
-        <a-marker preset="hiro">
-            <!-- Red Sphere -->
-            <a-sphere position="0 0.5 0" radius="0.2" color="#ff0000" segments-height="18"
-                segments-width="36"></a-sphere>
-        </a-marker>
-
-        <!-- Required camera -->
-        <a-entity camera></a-entity>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>AR.js Hit Testing Example</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <!-- A-Frame Library -->
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <!-- AR.js Library for A-Frame -->
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  </head>
+  <body style="margin: 0; overflow: hidden;">
+    <!-- A-Frame Scene with AR.js enabled -->
+    <a-scene embedded arjs="sourceType: webcam; trackingMethod: best;">
+      
+      <!-- gps-camera to allow location-based AR (if needed) -->
+      <a-camera gps-camera rotation-reader></a-camera>
+      
+      <!-- Invisible ground plane for hit testing -->
+      <a-plane id="ground" rotation="-90 0 0" width="50" height="50" color="#7BC8A4" opacity="0"></a-plane>
+      
+      <!-- Entity to mark the hit test result -->
+      <a-entity id="hit-marker"></a-entity>
+      
+      <!-- Custom component for hit testing -->
+      <a-entity custom-hit-test></a-entity>
+      
+      <script>
+        // Register a custom hit test component
+        AFRAME.registerComponent('custom-hit-test', {
+          init: function () {
+            const sceneEl = this.el.sceneEl;
+            const camera = sceneEl.camera;
+            const ground = document.getElementById('ground').object3D;
+            const hitMarker = document.getElementById('hit-marker');
+            this.raycaster = new THREE.Raycaster();
+            this.mouse = new THREE.Vector2();
+            
+            // Listen for click/tap events on the window
+            window.addEventListener('click', (event) => {
+              // Convert screen coordinates to normalized device coordinates (-1 to +1)
+              this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+              this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+              
+              // Update the raycaster with the camera and mouse position
+              this.raycaster.setFromCamera(this.mouse, camera);
+              
+              // Check for intersections with the ground plane
+              const intersects = this.raycaster.intersectObject(ground, true);
+              if (intersects.length > 0) {
+                const intersectPoint = intersects[0].point;
+                console.log('Hit point:', intersectPoint);
+                
+                // Place a marker at the hit location
+                hitMarker.setAttribute('position', intersectPoint);
+                
+                // If no marker exists, create a visible sphere as a marker
+                if (!hitMarker.firstChild) {
+                  const sphere = document.createElement('a-sphere');
+                  sphere.setAttribute('radius', '0.3');
+                  sphere.setAttribute('color', '#EF2D5E');
+                  hitMarker.appendChild(sphere);
+                }
+              }
+            });
+          }
+        });
+      </script>
     </a-scene>
-</body>
-
+  </body>
 </html>
