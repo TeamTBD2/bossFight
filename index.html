@@ -119,10 +119,7 @@
                    displayHeight: 960;"
     >
       <!-- Camera -->
-      <a-camera
-        gps-camera="simulateLatitude: 0; simulateLongitude: 0"
-        rotation-reader
-      ></a-camera>
+      <a-camera gps-camera rotation-reader></a-camera>
 
       <!-- AR objects will be added here dynamically -->
     </a-scene>
@@ -279,22 +276,14 @@
         return entity;
       }
 
-      // Watch position changes
       function watchPosition() {
-        const watchId = navigator.geolocation.watchPosition(
+        navigator.geolocation.watchPosition(
           (position) => {
-            // Update current position
+            // Update current position variables without re-setting the AR camera origin.
             currentLat = position.coords.latitude;
             currentLng = position.coords.longitude;
 
-            // Update camera
-            const camera = document.querySelector("a-camera");
-            camera.setAttribute("gps-camera", {
-              simulateLatitude: position.coords.latitude,
-              simulateLongitude: position.coords.longitude,
-            });
-
-            // Update status with accuracy
+            // Update status with the new location info.
             statusInfo.textContent = `Location: ${position.coords.latitude.toFixed(
               6
             )}, ${position.coords.longitude.toFixed(
