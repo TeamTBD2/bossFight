@@ -37,6 +37,7 @@ function getDistanceMoved(pos1, pos2) {
   return R * c;
 }
 
+locar.startGps();
 // Manual GPS using Geolocation API
 let lastPosition = null;
 
