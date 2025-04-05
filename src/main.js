@@ -2,14 +2,13 @@ import * as THREE from 'three';
 import * as LocAR from 'locar';
 
 const camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.001, 1000);
-
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
-
 const scene = new THREE.Scene();
 
-const locar = new LocAR.LocationBased(scene, camera);
+
+document.body.appendChild(renderer.domElement);
+
 
 window.addEventListener("resize", e => {
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -17,53 +16,51 @@ window.addEventListener("resize", e => {
   camera.updateProjectionMatrix();
 });
 
+const locar = new LocAR.LocationBased(scene, camera);
+
+const deviceControls = new LocAR.DeviceOrientationControls(camera);
+
 const cam = new LocAR.WebcamRenderer(renderer);
 
-let firstLocation = true;
 
-const deviceOrientationControls = new LocAR.DeviceOrientationControls(camera);
+let firstPosition = true;
 
-// Get a reference to the new coordinate display div
-const coordDisplay = document.getElementById("coordinateDisplay");
+const indexedObjects = {};
 
-locar.on("gpsupdate", (pos, distMoved) => {
-  const userLat = pos.coords.latitude;
-  const userLon = pos.coords.longitude;
-  // Box properties are defined with latDis: 0 and lonDis: 0.00005.
+const cube = new THREE.BoxGeometry(20, 20, 20);
 
-  if (firstLocation) {
+const clickHandler = new LocAR.ClickHandler(renderer);
 
-    const boxLat = pos.coords.latitude + 0;
-    const boxLon = pos.coords.longitude + 0.00005;
+locar.on("gpsupdate", async (pos, distMoved) => {
 
-    coordDisplay.innerHTML = `
-    <strong>User Coordinates:</strong> Latitude: ${userLat.toFixed(6)}, Longitude: ${userLon.toFixed(6)}<br>
-    <strong>Box Coordinates:</strong> Latitude: ${boxLat.toFixed(6)}, Longitude: ${boxLon.toFixed(6)}
-  `;
+  if (firstPosition || distMoved > 100) {
 
-    const boxProps = [{
-      latDis: 0,
-      lonDis: 0.00005,
-      colour: 0x00ff00
-    }];
+    const response = await fetch(`https://hikar.org/webapp/map?bbox=${pos.coords.longitude - 0.02},${pos.coords.latitude - 0.02},${pos.coords.longitude + 0.02},${pos.coords.latitude + 0.02}&layers=poi&outProj=4326`);
+    const pois = await response.json();
 
-    const geom = new THREE.BoxGeometry(1, 1, 1);
+    pois.features.forEach(poi => {
+      if (!indexedObjects[poi.properties.osm_id]) {
+        const mesh = new THREE.Mesh(
+          cube,
+          new THREE.MeshBasicMaterial({ color: 0xff0000 })
+        );
 
-    for (const boxProp of boxProps) {
-      const mesh = new THREE.Mesh(
-        geom,
-        new THREE.MeshBasicMaterial({ color: boxProp.colour })
-      );
-
-      locar.add(
-        mesh,
-        pos.coords.longitude + boxProp.lonDis,
-        pos.coords.latitude + boxProp.latDis
-      );
-    }
-
-    firstLocation = false;
+        locar.add(mesh, poi.geometry.coordinates[0], poi.geometry.coordinates[1], 0, poi.properties);
+        indexedObjects[poi.properties.osm_id] = mesh;
+      }
+    });
+    firstPosition = false;
   }
+
+});
+
+document.getElementById("setFakeLoc").addEventListener("click", e => {
+  alert("Using fake input GPS, not real GPS location");
+  locar.stopGps();
+  locar.fakeGps(
+    parseFloat(document.getElementById("fakeLon").value),
+    parseFloat(document.getElementById("fakeLat").value)
+  );
 });
 
 locar.startGps();
@@ -72,6 +69,10 @@ renderer.setAnimationLoop(animate);
 
 function animate() {
   cam.update();
-  deviceOrientationControls.update();
+  deviceControls.update();
+  const objects = clickHandler.raycast(camera, scene);
+  if (objects.length) {
+    alert(`This is ${objects[0].object.properties.name}`);
+  }
   renderer.render(scene, camera);
 }
