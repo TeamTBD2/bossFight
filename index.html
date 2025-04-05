@@ -15,17 +15,17 @@
       display: block;
     }
 
-    /* Styling for the UI */
     .controls {
-      position: absolute;
+      position: fixed;
+      /* Make it stay in the same place even when AR is fullscreen */
       top: 10px;
       left: 10px;
       background-color: rgba(0, 0, 0, 0.5);
       padding: 10px;
       color: white;
       font-family: Arial, sans-serif;
-      z-index: 10;
-      /* Ensures buttons are on top of AR scene */
+      z-index: 999;
+      /* Ensure controls are on top of the AR content */
       display: none;
       /* Initially hidden */
     }
@@ -62,7 +62,6 @@
 </head>
 
 <body>
-  <!-- Add the WebXR Polyfill script -->
   <script src="https://cdn.jsdelivr.net/npm/webxr-polyfill"></script>
   <script>
     const polyfill = new WebXRPolyfill();
@@ -81,7 +80,7 @@
     renderer.xr.setReferenceSpaceType('local');
     document.body.appendChild(renderer.domElement);
 
-    // Add AR Button
+    // Create the AR Button
     const arButton = ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] });
     arButton.classList.add('ar-button');
     document.body.appendChild(arButton);
