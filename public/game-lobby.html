@@ -128,6 +128,11 @@
             margin-top: 5px;
             display: none;
         }
+
+        .loading {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 
@@ -160,8 +165,12 @@
         <button type="button" id="create-button">Create New Game</button>
     </div>
 
+    <script src="/socket.io/socket.io.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            // Connect to Socket.io
+            const socket = io();
+
             const form = document.getElementById('join-form');
             const gameCodeInput = document.getElementById('game-code');
             const playerNameInput = document.getElementById('player-name');
@@ -169,6 +178,57 @@
             const nameError = document.getElementById('name-error');
             const backButton = document.getElementById('back-button');
             const createButton = document.getElementById('create-button');
+            const joinButton = document.getElementById('join-button');
+
+            // Set up socket event listeners first
+            socket.on('findGameSuccess', function (data) {
+                // Join the game with the player name
+                const playerName = playerNameInput.value.trim();
+                socket.emit('joinGame', { gameId: data.gameId, playerName: playerName });
+            });
+
+            socket.on('findGameError', function (error) {
+                joinButton.disabled = false;
+                joinButton.classList.remove('loading');
+                joinButton.textContent = 'Join Game';
+
+                codeError.style.display = 'block';
+                codeError.textContent = error.message || 'Invalid game code. Please try again.';
+            });
+
+            socket.on('joinSuccess', function (data) {
+                // Store player ID and host status in localStorage to identify "you" in the player list
+                localStorage.setItem('currentPlayerId', data.playerId);
+                localStorage.setItem('isHost', data.isHost || false);
+                window.location.href = `/game-setup?id=${data.gameId}`;
+            });
+
+            socket.on('joinError', function (error) {
+                joinButton.disabled = false;
+                joinButton.classList.remove('loading');
+                joinButton.textContent = 'Join Game';
+
+                alert(error.message || 'Failed to join game');
+            });
+
+            socket.on('createSuccess', function (data) {
+                createButton.disabled = false;
+                createButton.classList.remove('loading');
+                createButton.textContent = 'Create New Game';
+
+                // Store player ID and host status in localStorage
+                localStorage.setItem('currentPlayerId', data.playerId);
+                localStorage.setItem('isHost', data.isHost || true);
+                window.location.href = `/game-setup?id=${data.gameId}`;
+            });
+
+            socket.on('createError', function (error) {
+                createButton.disabled = false;
+                createButton.classList.remove('loading');
+                createButton.textContent = 'Create New Game';
+
+                alert(error.message || 'Failed to create game');
+            });
 
             // Load previously used player name if available
             const savedName = localStorage.getItem('playerName');
@@ -207,18 +267,16 @@
 
                 if (!isValid) return;
 
+                // Disable the join button and show loading state
+                joinButton.disabled = true;
+                joinButton.classList.add('loading');
+                joinButton.textContent = 'Joining...';
+
                 // Save player name for future use
                 localStorage.setItem('playerName', playerName);
 
-                // Find game ID by code
-                findGameByCode(gameCode).then(gameId => {
-                    if (gameId) {
-                        // Join the game with the player name
-                        joinGame(gameId, playerName);
-                    } else {
-                        codeError.style.display = 'block';
-                    }
-                });
+                // Find game ID by code via socket
+                socket.emit('findGameByCode', { code: gameCode });
             });
 
             // Back button handler
@@ -235,87 +293,14 @@
                     localStorage.setItem('playerName', playerName);
                 }
 
-                // Create a new game
-                createGame(playerName);
+                // Disable the create button and show loading state
+                createButton.disabled = true;
+                createButton.classList.add('loading');
+                createButton.textContent = 'Creating...';
+
+                // Create a new game via socket
+                socket.emit('createGame', { hostName: playerName });
             });
-
-            // Function to find a game by its code
-            async function findGameByCode(code) {
-                // In a real implementation, you would call an API to find the game by code
-                // For now, we'll simulate by assuming the code is the last 4 characters of the game ID
-
-                // Check localStorage for testing the host view
-                const lastGameCode = localStorage.getItem('lastGameCode');
-                const lastGameId = localStorage.getItem('lastGameId');
-
-                if (lastGameCode === code && lastGameId) {
-                    return lastGameId;
-                }
-
-                // For demo purposes only - in a real app, call an API to find game by code
-                // This is a placeholder that would be replaced with a real implementation
-                try {
-                    const response = await fetch(`/api/findGameByCode/${code}`);
-                    const data = await response.json();
-                    return data.success ? data.gameId : null;
-                } catch (error) {
-                    console.error('Error finding game:', error);
-                    return null;
-                }
-            }
-
-            // Function to join a game
-            function joinGame(gameId, playerName) {
-                fetch('/api/joinGame', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        playerName: playerName,
-                        gameId: gameId
-                    })
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Store player ID in localStorage to identify "you" in the player list
-                            localStorage.setItem('currentPlayerId', data.playerId);
-                            window.location.href = `/game-setup?id=${data.gameId}`;
-                        } else {
-                            alert(data.message || 'Failed to join game');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Error connecting to server');
-                    });
-            }
-
-            // Function to create a game
-            function createGame(hostName) {
-                fetch('/api/createGame', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        hostName: hostName
-                    })
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            window.location.href = `/game-setup?id=${data.gameId}`;
-                        } else {
-                            alert(data.message || 'Failed to create game');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Error connecting to server');
-                    });
-            }
         });
     </script>
 </body>

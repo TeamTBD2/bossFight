@@ -67,6 +67,11 @@
         #create-game:hover {
             background-color: #388e3c;
         }
+
+        .loading {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 
@@ -80,40 +85,54 @@
         </div>
     </div>
 
+    <script src="/socket.io/socket.io.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            // Connect to Socket.io
+            const socket = io();
+            const createGameBtn = document.getElementById('create-game');
+            const joinGameBtn = document.getElementById('join-game');
+
+            // Setup event listeners for socket events first (outside of click handlers)
+            socket.on('createSuccess', function (data) {
+                console.log('Game created successfully:', data);
+
+                // Store player ID and host status in localStorage
+                localStorage.setItem('currentPlayerId', data.playerId);
+                localStorage.setItem('isHost', data.isHost);
+
+                // Navigate to the game setup page
+                window.location.href = `/game-setup?id=${data.gameId}`;
+            });
+
+            socket.on('createError', function (error) {
+                createGameBtn.classList.remove('loading');
+                createGameBtn.textContent = 'Create Game';
+                createGameBtn.disabled = false;
+                alert(error.message || 'Failed to create game');
+            });
+
             // Join Game button event listener
-            document.getElementById('join-game').addEventListener('click', function () {
+            joinGameBtn.addEventListener('click', function () {
                 // Redirect to the game lobby page where users can enter a game code
                 window.location.href = '/game-lobby';
             });
 
             // Create Game button event listener
-            document.getElementById('create-game').addEventListener('click', function () {
-                // Call the create game function from server
-                fetch('/api/createGame', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        hostName: localStorage.getItem('username') || 'Anonymous Player'
-                    })
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log('Success:', data);
-                        // Handle successful creation - perhaps redirect to game setup
-                        if (data.success) {
-                            window.location.href = '/game-setup?id=' + data.gameId;
-                        } else {
-                            alert(data.message || 'Failed to create game');
-                        }
-                    })
-                    .catch((error) => {
-                        console.error('Error:', error);
-                        alert('Error connecting to server');
-                    });
+            createGameBtn.addEventListener('click', function () {
+                // Prevent double-clicking
+                if (createGameBtn.disabled) return;
+
+                // Show loading state
+                createGameBtn.disabled = true;
+                createGameBtn.textContent = 'Creating Game...';
+                createGameBtn.classList.add('loading');
+
+                // Get username from localStorage or use default
+                const hostName = localStorage.getItem('username') || localStorage.getItem('playerName') || 'Anonymous Player';
+
+                // Create a new game via socket
+                socket.emit('createGame', { hostName });
             });
         });
     </script>

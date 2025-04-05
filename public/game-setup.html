@@ -175,6 +175,27 @@
             background-color: #f0f2f5;
             transform: none;
         }
+
+        .status-badge {
+            font-size: 0.8em;
+            padding: 3px 8px;
+            border-radius: 10px;
+            margin-right: 5px;
+        }
+
+        .status-connected {
+            background-color: #43a047;
+            color: white;
+        }
+
+        .status-disconnected {
+            background-color: #e53935;
+            color: white;
+        }
+
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 
@@ -202,21 +223,45 @@
 
         <div class="buttons">
             <button id="back-to-home">Back to Home</button>
-            <button id="start-game">Start Game</button>
+            <button id="start-game" class="hidden">Start Game</button>
         </div>
     </div>
 
+    <script src="/socket.io/socket.io.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            // Connect to Socket.io
+            const socket = io();
+            const startGameBtn = document.getElementById('start-game');
+            const backToHomeBtn = document.getElementById('back-to-home');
+            const refreshPlayersBtn = document.getElementById('refresh-players');
+
             // Get game ID from URL
             const urlParams = new URLSearchParams(window.location.search);
             const gameId = urlParams.get('id');
+
+            // Get player ID and host status from localStorage
+            const currentPlayerId = localStorage.getItem('currentPlayerId');
+            const isHost = localStorage.getItem('isHost') === 'true';
+
+            console.log(`Game setup page loaded with: gameId=${gameId}, playerId=${currentPlayerId}, isHost=${isHost}`);
 
             if (!gameId) {
                 alert('No game ID found. Redirecting to home page.');
                 window.location.href = '/';
                 return;
             }
+
+            // Show/hide start game button based on host status
+            if (isHost) {
+                startGameBtn.classList.remove('hidden');
+            }
+
+            // Reconnect the player to maintain their status
+            socket.emit('reconnectPlayer', {
+                gameId: gameId,
+                playerId: currentPlayerId
+            });
 
             // Generate 4-digit code from game ID
             const gameCode = generateGameCode(gameId);
@@ -227,30 +272,63 @@
             localStorage.setItem('lastGameId', gameId);
 
             // Load initial player list
-            fetchPlayers(gameId);
+            socket.emit('getGameStatus', { gameId });
+
+            // Listen for game status updates
+            socket.on('gameStatus', function (game) {
+                updatePlayersList(game.players);
+            });
+
+            // Listen for player list updates
+            socket.on('playerListUpdated', function (data) {
+                updatePlayersList(data.players);
+            });
+
+            // Listen for host changes
+            socket.on('hostChanged', function (data) {
+                // If current player is the new host, inform them and update UI
+                if (currentPlayerId === data.newHostId) {
+                    alert('You are now the host of this game!');
+                    localStorage.setItem('isHost', 'true');
+                    startGameBtn.classList.remove('hidden');
+                }
+
+                // Refresh the player list to show the new host
+                socket.emit('getGameStatus', { gameId });
+            });
+
+            // Listen for game start
+            socket.on('gameStarted', function (data) {
+                alert('The game is starting!');
+                // TODO: Redirect to the game page or change the UI
+            });
 
             // Setup refresh button
-            document.getElementById('refresh-players').addEventListener('click', function () {
-                fetchPlayers(gameId);
+            refreshPlayersBtn.addEventListener('click', function () {
+                socket.emit('getGameStatus', { gameId });
             });
 
             // Setup back button
-            document.getElementById('back-to-home').addEventListener('click', function () {
+            backToHomeBtn.addEventListener('click', function () {
                 if (confirm('Are you sure you want to leave this game setup?')) {
                     window.location.href = '/';
                 }
             });
 
             // Setup start game button
-            document.getElementById('start-game').addEventListener('click', function () {
-                // TODO: Call API to start the game
-                alert('Game starting soon! This feature is coming soon.');
+            startGameBtn.addEventListener('click', function () {
+                socket.emit('startGame', { gameId });
             });
 
-            // Auto-refresh player list every 10 seconds
-            setInterval(function () {
-                fetchPlayers(gameId);
-            }, 10000);
+            // Error handling for socket events
+            socket.on('gameStatusError', function (error) {
+                console.error('Error getting game status:', error.message);
+                alert('Error: ' + error.message);
+            });
+
+            socket.on('startGameError', function (error) {
+                alert(error.message);
+            });
         });
 
         // Generate a 4-digit code from a game ID
@@ -261,22 +339,6 @@
             } else {
                 return Math.floor(1000 + Math.random() * 9000).toString();
             }
-        }
-
-        // Fetch players from the server
-        function fetchPlayers(gameId) {
-            fetch(`/api/game/${gameId}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        updatePlayersList(data.game.players);
-                    } else {
-                        console.error('Error fetching game data:', data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                });
         }
 
         // Update the players list in the UI
@@ -298,6 +360,7 @@
                         <span class="player-name">${player.name} ${isCurrentPlayer ? '<span class="you-badge">you</span>' : ''}</span>
                         <div class="player-badges">
                             ${player.isHost ? '<span class="host-badge">Host</span>' : ''}
+                            ${player.disconnected ? '<span class="status-badge status-disconnected">Disconnected</span>' : ''}
                         </div>
                     </div>
                 `;
