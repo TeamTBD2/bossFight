@@ -72,6 +72,11 @@
     <div class="control-panel">
       <button id="moveForward">Move Forward</button>
       <button id="moveBackward">Move Backward</button>
+      <button id="moveLeft">Move Left</button>
+      <button id="moveRight">Move Right</button>
+      <button id="moveUp">Move Up</button>
+      <button id="moveDown">Move Down</button>
+
     </div>
   </div>
 
@@ -171,6 +176,22 @@
 
     document.getElementById('moveBackward').addEventListener('click', () => {
       sphere.position.z += moveDistance;
+    });
+
+    document.getElementById('moveLeft').addEventListener('click', () => {
+      sphere.position.x -= moveDistance;
+    });
+
+    document.getElementById('moveRight').addEventListener('click', () => {
+      sphere.position.x += moveDistance;
+    });
+
+    document.getElementById('moveUp').addEventListener('click', () => {
+      sphere.position.y += moveDistance;
+    });
+
+    document.getElementById('moveDown').addEventListener('click', () => {
+      sphere.position.y -= moveDistance;
     });
 
     // Handle window resize
