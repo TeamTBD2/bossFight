@@ -128,22 +128,22 @@
     });
 
     // Use Geolocation API to get user location
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        position => {
-          const userLat = position.coords.latitude;
-          const userLon = position.coords.longitude;
-          placeSphereAtLocation(userLat, userLon);
-        },
-        error => {
-          overlay.textContent = "Error getting location.";
-          console.error(error);
-        },
-        { enableHighAccuracy: true }
-      );
-    } else {
-      overlay.textContent = "Geolocation not supported.";
-    }
+    // if ('geolocation' in navigator) {
+    //   navigator.geolocation.getCurrentPosition(
+    //     position => {
+    //       const userLat = position.coords.latitude;
+    //       const userLon = position.coords.longitude;
+    //       placeSphereAtLocation(userLat, userLon);
+    //     },
+    //     error => {
+    //       overlay.textContent = "Error getting location.";
+    //       console.error(error);
+    //     },
+    //     { enableHighAccuracy: true }
+    //   );
+    // } else {
+    //   overlay.textContent = "Geolocation not supported.";
+    // }
 
     animate();
   </script>
