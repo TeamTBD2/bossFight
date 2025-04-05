@@ -3,268 +3,101 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Location-based AR with Manual Ball Placement</title>
+    <title>AR Ball Placement with Coordinates</title>
     <!-- Import A-Frame -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
-    <!-- Import AR.js (location-based) from a reliable CDN -->
+    <!-- Import AR.js for location-based AR -->
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
-    <!-- Import look-at component -->
-    <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
     <style>
       body {
         margin: 0;
         overflow: hidden;
       }
-      .centered {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background-color: rgba(0, 0, 0, 0.7);
-        color: white;
-        padding: 20px;
-        border-radius: 10px;
-        text-align: center;
-        font-family: Arial, sans-serif;
-        z-index: 999;
+      /* Styling for the coordinate displays */
+      #phoneCoords,
+      #objectCoords {
+        position: absolute;
+        background: rgba(0, 0, 0, 0.5);
+        color: #fff;
+        padding: 5px 10px;
+        font-family: sans-serif;
+        z-index: 100;
       }
-      .hidden {
-        display: none;
+      #phoneCoords {
+        top: 10px;
+        left: 10px;
       }
-      #startButton,
-      #placeObjectButton {
-        padding: 10px 20px;
-        background-color: #4caf50;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        font-size: 16px;
-        margin: 10px;
-      }
-      #startButton:hover,
-      #placeObjectButton:hover {
-        background-color: #45a049;
-      }
-      #statusInfo {
-        position: fixed;
-        bottom: 20px;
-        left: 20px;
-        background-color: rgba(0, 0, 0, 0.7);
-        color: white;
-        padding: 10px;
-        border-radius: 5px;
-        font-family: Arial, sans-serif;
-        z-index: 999;
-        max-width: 80%;
-      }
-      /* ADDED: Fixed positioning for the placement button */
-      #placeObjectButton {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        z-index: 1000;
-      }
-      /* Add this to ensure proper button layering */
-      a-scene {
-        z-index: 0;
+      #objectCoords {
+        top: 50px;
+        left: 10px;
       }
     </style>
   </head>
   <body>
-    <!-- Start Screen -->
-    <div id="startScreen" class="centered">
-      <h2>Location-based AR</h2>
-      <p>
-        This app uses your GPS location and camera to place AR objects in the
-        real world.
-      </p>
-      <p>Please allow camera and location access.</p>
-      <button id="startButton">Start AR Experience</button>
-    </div>
+    <!-- Display for phone coordinates -->
+    <div id="phoneCoords">Phone Coordinates: Loading...</div>
+    <!-- Display for placed object's coordinates -->
+    <div id="objectCoords">Object Coordinates: None</div>
 
-    <!-- A-Frame Scene -->
-    <a-scene
-      id="arScene"
-      class="hidden"
-      vr-mode-ui="enabled: false"
-      embedded
-      arjs="sourceType: webcam; debugUIEnabled: false;"
-    >
-      <!-- GPS-enabled camera -->
+    <!-- A-Frame Scene with AR.js and gps-camera -->
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
       <a-camera gps-camera rotation-reader></a-camera>
     </a-scene>
 
-    <!-- Status Info and Place Object Button -->
-    <div id="statusInfo" class="hidden">Initializing...</div>
-    <button id="placeObjectButton" class="hidden">Place Ball Here</button>
-
     <script>
-      // CURRENT POSITION VARIABLES
-      let currentLat = null;
-      let currentLng = null;
-      let watchId = null;
+      // Get references to the coordinate display elements
+      const phoneCoordsDiv = document.getElementById("phoneCoords");
+      const objectCoordsDiv = document.getElementById("objectCoords");
+      const scene = document.querySelector("a-scene");
+      const gpsCameraEl = document.querySelector("[gps-camera]");
 
-      // GEOLOCATION FUNCTIONS
-      function getCurrentPosition() {
-        return new Promise((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(
-            (position) => resolve(position),
-            (error) => reject(error),
-            {
-              enableHighAccuracy: true,
-              timeout: 15000,
-              maximumAge: 0,
-            }
-          );
-        });
-      }
-
-      // VISIBILITY CHECK COMPONENT
-      AFRAME.registerComponent("visibility-check", {
-        tick: function () {
-          const cameraEl = document.querySelector("[gps-camera]");
-          if (!cameraEl) return;
-
-          const cameraObj = cameraEl.object3D;
-          const objectObj = this.el.object3D;
-
-          // Get world positions
-          const camPosition = new THREE.Vector3();
-          const objPosition = new THREE.Vector3();
-          cameraObj.getWorldPosition(camPosition);
-          objectObj.getWorldPosition(objPosition);
-
-          // Calculate direction vectors
-          const directionToObject = new THREE.Vector3()
-            .subVectors(objPosition, camPosition)
-            .normalize();
-          const cameraForward = new THREE.Vector3(0, 0, -1)
-            .applyQuaternion(cameraObj.quaternion)
-            .normalize();
-
-          // Show if within 45° viewing angle
-          const angle = cameraForward.angleTo(directionToObject);
-          this.el.setAttribute("visible", angle < THREE.MathUtils.degToRad(45));
-        },
+      // Update the phone's GPS coordinates as they change.
+      gpsCameraEl.addEventListener("gps-camera-update-position", function (e) {
+        const lat = e.detail.position.latitude;
+        const lon = e.detail.position.longitude;
+        phoneCoordsDiv.textContent = `Phone Coordinates: ${lat.toFixed(
+          6
+        )}, ${lon.toFixed(6)}`;
       });
 
-      // OBJECT CREATION FUNCTION
-      function createARObject(lat, lng) {
-        const entity = document.createElement("a-entity");
-        entity.setAttribute("gps-entity-place", {
-          latitude: lat,
-          longitude: lng,
-        });
-        entity.setAttribute("visibility-check", "");
+      // Listen for click/touch events on the A-Frame scene.
+      scene.addEventListener("click", function (event) {
+        // Convert the click/touch coordinates to normalized device coordinates (NDC)
+        const mouse = new THREE.Vector2();
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-        // Create properly sized sphere
-        const sphere = document.createElement("a-sphere");
-        sphere.setAttribute("radius", 0.5); // 0.5 meters diameter
-        sphere.setAttribute("color", "#FF0000");
-        sphere.setAttribute("material", "shader: flat; metalness: 0.5;");
+        // Get the camera's THREE.js object and create a raycaster
+        const cameraEl = document.querySelector("a-camera");
+        const cameraObj = cameraEl.object3D;
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, cameraObj);
 
-        // Subtle pulse animation
-        sphere.setAttribute("animation", {
-          property: "scale",
-          from: "1 1 1",
-          to: "1.2 1.2 1.2",
-          dur: 2000,
-          loop: true,
-          easing: "easeInOutSine",
-        });
+        // Define a fixed distance (5 meters) from the camera along the ray.
+        const distance = 5;
+        const clickPosition = new THREE.Vector3()
+          .copy(raycaster.ray.origin)
+          .add(raycaster.ray.direction.multiplyScalar(distance));
 
-        entity.appendChild(sphere);
-        document.querySelector("a-scene").appendChild(entity);
-      }
+        // Use the gps-camera component's localToGPS function to convert the local position to GPS coordinates.
+        const gpsCamera = gpsCameraEl.components["gps-camera"];
+        const gpsPosition = gpsCamera.localToGPS(clickPosition);
 
-      // CALCULATE FORWARD POSITION
-      function getForwardPosition(distance) {
-        const camera = document.querySelector("[gps-camera]");
-        const position = new THREE.Vector3();
-        const rotation = new THREE.Quaternion();
-        const cameraObj = camera.object3D;
+        // Create a small ball (a-sphere) with a 0.2 m radius.
+        const ball = document.createElement("a-sphere");
+        ball.setAttribute("radius", "0.2");
+        ball.setAttribute("color", "#FF0000");
+        // Use the gps-entity-place component so the ball is fixed at the computed GPS position.
+        ball.setAttribute(
+          "gps-entity-place",
+          `latitude: ${gpsPosition.latitude}; longitude: ${gpsPosition.longitude};`
+        );
+        scene.appendChild(ball);
 
-        cameraObj.getWorldPosition(position);
-        cameraObj.getWorldQuaternion(rotation);
-
-        // Calculate forward direction
-        const forward = new THREE.Vector3(0, 0, -1)
-          .applyQuaternion(rotation)
-          .multiplyScalar(distance);
-
-        return position.add(forward);
-      }
-
-      // CONVERT TO GPS COORDINATES
-      function localToGPS(position) {
-        const gpsCamera =
-          document.querySelector("[gps-camera]").components["gps-camera"];
-        return gpsCamera.localToGPS(position);
-      }
-
-      // PLACEMENT FUNCTION
-      function placeBallAtCurrentLocation() {
-        if (!currentLat || !currentLng) {
-          statusInfo.textContent = "Waiting for location...";
-          return;
-        }
-
-        try {
-          // Calculate position 10 meters ahead
-          const forwardPos = getForwardPosition(10);
-          const gpsPosition = localToGPS(forwardPos);
-
-          createARObject(gpsPosition.latitude, gpsPosition.longitude);
-          statusInfo.textContent = "Ball placed 10 meters ahead!";
-        } catch (error) {
-          statusInfo.textContent = "Error placing ball";
-          console.error(error);
-        }
-      }
-
-      // INITIALIZATION FUNCTION
-      async function initAR() {
-        try {
-          startScreen.classList.add("hidden");
-          arScene.classList.remove("hidden");
-          statusInfo.classList.remove("hidden");
-
-          const position = await getCurrentPosition();
-          currentLat = position.coords.latitude;
-          currentLng = position.coords.longitude;
-
-          // Initialize camera with simulation
-          const camera = document.querySelector("a-camera");
-          camera.setAttribute("gps-camera", {
-            simulateLatitude: currentLat,
-            simulateLongitude: currentLng,
-            positionMinAccuracy: 5,
-          });
-
-          placeObjectButton.classList.remove("hidden");
-          watchId = navigator.geolocation.watchPosition(
-            (position) => {
-              currentLat = position.coords.latitude;
-              currentLng = position.coords.longitude;
-              statusInfo.textContent = `Updated: ${currentLat.toFixed(
-                6
-              )}, ${currentLng.toFixed(6)}`;
-            },
-            (error) => {
-              statusInfo.textContent = `Location error: ${error.message}`;
-            },
-            { enableHighAccuracy: true }
-          );
-        } catch (error) {
-          statusInfo.textContent = `Error: ${error.message}`;
-        }
-      }
-
-      // EVENT LISTENERS
-      document.addEventListener("DOMContentLoaded", () => {
-        startButton.addEventListener("click", initAR);
-        placeObjectButton.addEventListener("click", placeBallAtCurrentLocation);
+        // Update the object coordinates display.
+        objectCoordsDiv.textContent = `Object Coordinates: ${gpsPosition.latitude.toFixed(
+          6
+        )}, ${gpsPosition.longitude.toFixed(6)}`;
       });
     </script>
   </body>
