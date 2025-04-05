@@ -6,7 +6,7 @@
     <!-- Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <!-- AR.js with Three.js support -->
-    <script src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.3.0/dist/ar-threex.min.js"></script>
+    <script src="https://unpkg.com/@ar-js-org/ar.js@3.3.0/dist/ar-threex.js"></script>
     <style>
       body {
         margin: 0;
@@ -99,16 +99,17 @@
         });
 
         arToolkitSource.init(() => {
-          arToolkitSource.play();
           document.body.appendChild(arToolkitSource.domElement);
+          arToolkitSource.play();
         });
 
         // AR Context setup
         arToolkitContext = new THREEx.ArToolkitContext({
           cameraParametersUrl:
-            "https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.3.0/dist/data/camera_para.dat",
+            "https://unpkg.com/@ar-js-org/ar.js@3.3.0/dist/data/camera_para.dat",
           detectionMode: "mono",
         });
+
         arToolkitContext.init(() => {
           camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
         });
