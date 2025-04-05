@@ -22,6 +22,7 @@
         font-family: sans-serif;
         z-index: 1001;
       }
+      /* (Optional) styling for AR.js video element */
       #arjs-video {
         position: absolute;
         top: 0;
@@ -54,7 +55,7 @@
     <div id="gps">GPS: Not Available</div>
     <button id="startButton">Start AR</button>
     <script>
-      // Get GPS coordinates
+      // Get GPS coordinates and display them
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
@@ -74,12 +75,14 @@
       function init() {
         // Scene setup
         scene = new THREE.Scene();
+        // Use a PerspectiveCamera for our scene
         camera = new THREE.PerspectiveCamera(
           60,
           window.innerWidth / window.innerHeight,
           0.1,
           100
         );
+        scene.add(camera);
 
         // Renderer setup
         renderer = new THREE.WebGLRenderer({
@@ -89,8 +92,8 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // AR Source setup
-        arToolkitSource = new THREEx.ArToolkitSource({
+        // AR Source setup using ARjs (instead of THREEx)
+        arToolkitSource = new ARjs.Source({
           sourceType: "webcam",
           sourceWidth: 1280,
           sourceHeight: 720,
@@ -99,23 +102,29 @@
         });
 
         arToolkitSource.init(() => {
+          // Append the video element (if not already appended)
           document.body.appendChild(arToolkitSource.domElement);
-          arToolkitSource.play();
+          // Optionally, call play() if needed
+          if (arToolkitSource.domElement.play) {
+            arToolkitSource.domElement.play();
+          }
         });
+        window.addEventListener("resize", onResize);
 
-        // AR Context setup
-        arToolkitContext = new THREEx.ArToolkitContext({
+        // AR Context setup using ARjs
+        arToolkitContext = new ARjs.Context({
           cameraParametersUrl:
             "https://unpkg.com/@ar-js-org/ar.js@3.3.0/dist/data/camera_para.dat",
           detectionMode: "mono",
         });
-
         arToolkitContext.init(() => {
+          // Copy the projection matrix to our camera
           camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
         });
 
-        // Add red ball
-        const geometry = new THREE.SphereGeometry(0.1);
+        // Add a red ball (a sphere) to the scene.
+        // It is placed at (0,0,-1) relative to the world, which for this simple setup appears 1 meter in front of the camera.
+        const geometry = new THREE.SphereGeometry(0.1, 32, 32);
         const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
         const ball = new THREE.Mesh(geometry, material);
         ball.position.set(0, 0, -1);
@@ -129,15 +138,24 @@
         });
       }
 
-      function animate() {
-        requestAnimationFrame(animate);
-
-        if (arToolkitSource.ready) {
-          arToolkitContext.update(arToolkitSource.domElement);
-          renderer.render(scene, camera);
+      function onResize() {
+        arToolkitSource.onResizeElement();
+        arToolkitSource.copyElementSizeTo(renderer.domElement);
+        if (arToolkitContext.arController !== null) {
+          arToolkitSource.copyElementSizeTo(
+            arToolkitContext.arController.canvas
+          );
         }
       }
 
+      function animate() {
+        requestAnimationFrame(animate);
+        if (arToolkitSource.ready === false) return;
+        arToolkitContext.update(arToolkitSource.domElement);
+        renderer.render(scene, camera);
+      }
+
+      // Start AR on user gesture (button click)
       document.getElementById("startButton").addEventListener("click", () => {
         document.getElementById("startButton").style.display = "none";
         init();
