@@ -27,7 +27,7 @@ let firstPosition = true;
 
 const indexedObjects = { };
 
-const cube = new THREE.BoxGeometry(20, 20, 20);
+const cube = new THREE.BoxGeometry(1, 1, 1);
 
 const clickHandler = new LocAR.ClickHandler(renderer);
 
@@ -35,7 +35,7 @@ locar.on("gpsupdate", async(pos, distMoved) => {
     
     if(firstPosition || distMoved > 100) {
 
-        const response = await fetch(`https://hikar.org/webapp/map?bbox=${pos.coords.longitude-0.02},${pos.coords.latitude-0.02},${pos.coords.longitude+0.02},${pos.coords.latitude+0.02}&layers=poi&outProj=4326`);
+        const response = await fetch(`https://hikar.org/webapp/map?bbox=${pos.coords.longitude-0.0002},${pos.coords.latitude-0.0002},${pos.coords.longitude+0.0002},${pos.coords.latitude+0.0002}&layers=poi&outProj=4326`);
         const pois = await response.json();
 
         pois.features.forEach ( poi => {
