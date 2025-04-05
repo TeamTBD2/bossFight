@@ -1,66 +1,66 @@
 import * as THREE from 'three';
 import * as LocAR from 'locar';
 
-const camera = new THREE.PerspectiveCamera(80, window.innerWidth/window.innerHeight, 0.001, 1000);
+const camera = new THREE.PerspectiveCamera(
+  80,
+  window.innerWidth / window.innerHeight,
+  0.001,
+  1000
+);
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 const scene = new THREE.Scene();
 
-
 document.body.appendChild(renderer.domElement);
 
-
-window.addEventListener("resize", e => {
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
+window.addEventListener("resize", (e) => {
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
 });
 
 const locar = new LocAR.LocationBased(scene, camera);
-
 const deviceControls = new LocAR.DeviceOrientationControls(camera);
-
 const cam = new LocAR.WebcamRenderer(renderer);
-
-
-let firstPosition = true;
-
-const indexedObjects = { };
-
-const cube = new THREE.BoxGeometry(1, 1, 1);
-
 const clickHandler = new LocAR.ClickHandler(renderer);
 
-locar.on("gpsupdate", async(pos, distMoved) => {
+// Create a box geometry
+const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
+const boxMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+const box = new THREE.Mesh(boxGeometry, boxMaterial);
+
+// Flag to track if the box has been placed
+let boxPlaced = false;
+
+locar.on("gpsupdate", async (pos) => {
+  // Only place the box once when we first get a GPS position
+  if (!boxPlaced) {
+    // Calculate a position 1 meter north of the user's position
+    // We use the haversine formula to calculate the latitude change for 1 meter
+    const earthRadius = 6371000; // Earth radius in meters
+    const latChange = (1 / earthRadius) * (180 / Math.PI);
     
-    if(firstPosition || distMoved > 100) {
-
-        const response = await fetch(`https://hikar.org/webapp/map?bbox=${pos.coords.longitude-0.0002},${pos.coords.latitude-0.0002},${pos.coords.longitude+0.0002},${pos.coords.latitude+0.0002}&layers=poi&outProj=4326`);
-        const pois = await response.json();
-
-        pois.features.forEach ( poi => {
-            if(!indexedObjects[poi.properties.osm_id]) {
-                const mesh = new THREE.Mesh(
-                    cube,
-                    new THREE.MeshBasicMaterial({color: 0xff0000})
-                );                
-
-                locar.add(mesh, poi.geometry.coordinates[0], poi.geometry.coordinates[1], 0, poi.properties);
-                indexedObjects[poi.properties.osm_id] = mesh;
-            }
-        });
-        firstPosition = false;
-    }
-
+    // Place the box 1 meter north of the user
+    const boxLat = pos.coords.latitude + latChange;
+    const boxLon = pos.coords.longitude;
+    
+    // Add the box to the scene at the calculated position
+    locar.add(box, boxLon, boxLat, 0, { name: "AR Box" });
+    
+    boxPlaced = true;
+    console.log("Box placed 1 meter away at:", boxLon, boxLat);
+  }
 });
 
-document.getElementById("setFakeLoc").addEventListener("click", e => {
-    alert("Using fake input GPS, not real GPS location");
-    locar.stopGps();
-    locar.fakeGps(
-        parseFloat(document.getElementById("fakeLon").value),
-        parseFloat(document.getElementById("fakeLat").value)
-    );
+document.getElementById("setFakeLoc").addEventListener("click", (e) => {
+  alert("Using fake input GPS, not real GPS location");
+  locar.stopGps();
+  locar.fakeGps(
+    parseFloat(document.getElementById("fakeLon").value),
+    parseFloat(document.getElementById("fakeLat").value)
+  );
+  // Reset box placement so it will be placed again with the new location
+  boxPlaced = false;
 });
 
 locar.startGps();
@@ -68,11 +68,13 @@ locar.startGps();
 renderer.setAnimationLoop(animate);
 
 function animate() {
-    cam.update();
-    deviceControls.update();
-    const objects = clickHandler.raycast(camera, scene);
-    if(objects.length) {
-        alert(`This is ${objects[0].object.properties.name}`);
-    }
-    renderer.render(scene, camera);
+  cam.update();
+  deviceControls.update();
+  
+  const objects = clickHandler.raycast(camera, scene);
+  if (objects.length) {
+    alert(`This is ${objects[0].object.properties.name}`);
+  }
+  
+  renderer.render(scene, camera);
 }
