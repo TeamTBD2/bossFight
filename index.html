@@ -3,21 +3,36 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>WebXR AR Camera Feed</title>
+  <title>WebXR AR Geolocation Demo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
       margin: 0;
       overflow: hidden;
+      font-family: Arial, sans-serif;
     }
 
     canvas {
       display: block;
     }
+
+    #info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      pointer-events: none;
+    }
   </style>
 </head>
 
 <body>
+  <div id="info">Loading location data...</div>
+
   <!-- Add the WebXR Polyfill script -->
   <script src="https://cdn.jsdelivr.net/npm/webxr-polyfill"></script>
   <script>
@@ -27,6 +42,14 @@
   <script type="module">
     import * as THREE from 'https://cdn.skypack.dev/three@0.150.1';
     import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/webxr/ARButton.js';
+
+    // Target coordinates
+    const TARGET_LAT = 53.4697234;
+    const TARGET_LON = -2.2340321;
+
+    let currentLat = 0;
+    let currentLon = 0;
+    let infoElement = document.getElementById('info');
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera();
@@ -38,22 +61,154 @@
     document.body.appendChild(renderer.domElement);
 
     // Add AR Button
-    document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
+    document.body.appendChild(ARButton.createButton(renderer, {
+      requiredFeatures: ['hit-test'],
+      optionalFeatures: ['dom-overlay'],
+      domOverlay: { root: document.body }
+    }));
 
-    // Create a red sphere
-    const geometry = new THREE.SphereGeometry(0.1, 32, 32); // radius, widthSegments, heightSegments
-    const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+    // Create a red sphere to mark the target location
+    const geometry = new THREE.SphereGeometry(0.5, 32, 32); // Larger radius to be more visible
+    const material = new THREE.MeshStandardMaterial({
+      color: 0xff0000,
+      transparent: true,
+      opacity: 0.8
+    });
     const sphere = new THREE.Mesh(geometry, material);
-
-    sphere.position.set(0, 0, -0.5); // half a meter in front of the camera
     scene.add(sphere);
 
+    // Add a marker for current position
+    const markerGeometry = new THREE.CylinderGeometry(0.2, 0.2, 0.1, 32);
+    const markerMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+    const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+    scene.add(marker);
+    marker.position.set(0, -0.05, -1); // 1 meter in front, slightly below eye level
+
+    // Arrow pointing to target
+    const arrowGeometry = new THREE.ConeGeometry(0.1, 0.3, 32);
+    const arrowMaterial = new THREE.MeshStandardMaterial({ color: 0x0000ff });
+    const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
+    arrow.rotation.x = Math.PI / 2; // Point forward
+    scene.add(arrow);
+    arrow.position.set(0, 0.2, -1); // Above the marker
+
     // Lighting
-    const light = new THREE.HemisphereLight(0xffffff, 0x444444);
+    const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
     scene.add(light);
 
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(0, 5, 0);
+    scene.add(directionalLight);
+
+    // Helper function to convert lat/lon to meters (using Haversine formula)
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371000; // Earth's radius in meters
+      const φ1 = lat1 * Math.PI / 180;
+      const φ2 = lat2 * Math.PI / 180;
+      const Δφ = (lat2 - lat1) * Math.PI / 180;
+      const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+      const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+        Math.cos(φ1) * Math.cos(φ2) *
+        Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+      return R * c; // Distance in meters
+    }
+
+    // Helper function to calculate bearing between two points
+    function calculateBearing(lat1, lon1, lat2, lon2) {
+      const φ1 = lat1 * Math.PI / 180;
+      const φ2 = lat2 * Math.PI / 180;
+      const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+      const y = Math.sin(Δλ) * Math.cos(φ2);
+      const x = Math.cos(φ1) * Math.sin(φ2) -
+        Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+
+      return Math.atan2(y, x);
+    }
+
+    // Helper function to convert bearing to x,z coordinates
+    function bearingToXZ(bearing, distance) {
+      return {
+        x: Math.sin(bearing) * distance,
+        z: Math.cos(bearing) * -distance // Negative z is "forward" in Three.js
+      };
+    }
+
+    // Get user's geolocation
+    function getUserLocation() {
+      if (!navigator.geolocation) {
+        updateInfo("Geolocation is not supported by your browser");
+        return;
+      }
+
+      navigator.geolocation.watchPosition(
+        (position) => {
+          currentLat = position.coords.latitude;
+          currentLon = position.coords.longitude;
+
+          // Calculate distance and bearing to target
+          const distance = calculateDistance(currentLat, currentLon, TARGET_LAT, TARGET_LON);
+          const bearing = calculateBearing(currentLat, currentLon, TARGET_LAT, TARGET_LON);
+
+          // Convert to x,z coordinates
+          const coords = bearingToXZ(bearing, distance);
+
+          // Update sphere position (adjusted for reasonable AR viewing)
+          // If the actual distance is too large, scale it down
+          const maxDistance = 50; // Maximum distance in meters to display in AR space
+          const scaleFactor = Math.min(1, maxDistance / distance);
+          const scaledDistance = distance * scaleFactor;
+          const scaledCoords = bearingToXZ(bearing, scaledDistance);
+
+          sphere.position.set(scaledCoords.x, 0, scaledCoords.z);
+
+          // Update arrow to point to target
+          arrow.lookAt(scaledCoords.x, 0.2, scaledCoords.z);
+
+          // Update info display
+          updateInfo(`Current: ${currentLat.toFixed(6)}, ${currentLon.toFixed(6)}<br>
+                     Target: ${TARGET_LAT.toFixed(6)}, ${TARGET_LON.toFixed(6)}<br>
+                     Distance: ${(distance).toFixed(1)}m<br>
+                     Direction: ${(bearing * 180 / Math.PI).toFixed(1)}°<br>
+                     ${distance > maxDistance ? '(Distance scaled down for visualization)' : ''}`);
+        },
+        (error) => {
+          console.error("Error getting location:", error);
+          updateInfo(`Error getting location: ${error.message}`);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0
+        }
+      );
+    }
+
+    // Update info display
+    function updateInfo(text) {
+      infoElement.innerHTML = text;
+    }
+
+    // Initialize user location tracking
+    getUserLocation();
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Animation loop
     function animate() {
       renderer.setAnimationLoop(() => {
+        // Make the sphere pulsate for better visibility
+        const time = performance.now() * 0.001; // Convert to seconds
+        sphere.scale.setScalar(1 + 0.1 * Math.sin(time * 2));
+
         renderer.render(scene, camera);
       });
     }
