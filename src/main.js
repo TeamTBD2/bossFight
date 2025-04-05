@@ -23,8 +23,8 @@ let firstLocation = true;
 
 const deviceOrientationControls = new LocAR.DeviceOrientationControls(camera);
 
-locar.on("gpsupdate", (pos, distMoved) => {
-  if (firstLocation) {
+if (firstLocation) {
+  locar.on("gpsupdate", (pos, distMoved) => {
     console.log("Updating")
     let originalPos = pos;
 
@@ -63,7 +63,8 @@ locar.on("gpsupdate", (pos, distMoved) => {
 
     firstLocation = false;
   }
-});
+  )
+};
 
 locar.startGps();
 
