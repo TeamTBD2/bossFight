@@ -2,10 +2,10 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>AR.js + Three.js Ball with GPS</title>
+    <title>AR.js + Three.js Ball with GPS and Relative Position</title>
     <!-- Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- AR.js with Three.js support (CDN that defines THREEx) -->
+    <!-- AR.js (using THREEx, which exposes the THREEx namespace) -->
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/three.js/build/ar-threex.js"></script>
     <style>
       body {
@@ -22,7 +22,7 @@
         font-family: sans-serif;
         z-index: 1001;
       }
-      /* The AR.js video element */
+      /* AR.js video element */
       #arjs-video {
         position: absolute;
         top: 0;
@@ -30,14 +30,13 @@
         z-index: 1000;
         transform: scaleX(-1);
       }
-      /* The Three.js canvas */
+      /* Three.js canvas */
       canvas {
         position: absolute;
         top: 0;
         left: 0;
         z-index: 1002;
       }
-      /* Start button styling */
       #startButton {
         position: absolute;
         top: 50%;
@@ -57,7 +56,7 @@
     <div id="gps">GPS: Not Available</div>
     <button id="startButton">Start AR</button>
     <script>
-      // Get and display GPS coordinates if available
+      // Get GPS coordinates and display them
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
@@ -75,21 +74,22 @@
 
       let scene, camera, renderer;
       let arToolkitSource, arToolkitContext;
+      let ball; // declare the ball globally
 
       function init() {
-        // Create the Three.js scene
+        // Create Three.js scene
         scene = new THREE.Scene();
 
-        // Create a camera; AR.js uses a Three.js Camera
+        // Create an AR.js camera (THREEx provides a special Camera)
         camera = new THREE.Camera();
         scene.add(camera);
 
-        // Create the WebGL renderer with alpha (transparent background)
+        // Create the WebGL renderer with alpha for transparency
         renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // Set up ARToolkitSource to use the webcam
+        // Initialize ARToolkitSource using webcam
         arToolkitSource = new THREEx.ArToolkitSource({
           sourceType: "webcam",
           sourceWidth: 1280,
@@ -97,9 +97,8 @@
           displayWidth: window.innerWidth,
           displayHeight: window.innerHeight,
         });
-
         arToolkitSource.init(() => {
-          // Append the video element if it's not already in the DOM
+          // Append the video element if not already appended
           if (!document.getElementById("arjs-video")) {
             arToolkitSource.domElement.setAttribute("id", "arjs-video");
             document.body.appendChild(arToolkitSource.domElement);
@@ -108,23 +107,21 @@
         });
         window.addEventListener("resize", onResize);
 
-        // Set up ARToolkitContext with camera parameters
+        // Initialize ARToolkitContext using a local (or your own hosted) camera parameters file
         arToolkitContext = new THREEx.ArToolkitContext({
-          cameraParametersUrl:
-            "https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/three.js/data/camera_para.dat",
+          cameraParametersUrl: "./data/camera_para.dat", // update this to your hosted file
           detectionMode: "mono",
         });
         arToolkitContext.init(() => {
-          // Copy the projection matrix to our camera
           camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
         });
 
-        // Add a red ball to the scene
-        // The ball is positioned at (0, 0, -1) relative to the world,
-        // which in this simple setup appears 1 meter in front of the camera.
+        // Create a red ball (a sphere) that will be placed relative to the user.
         const geometry = new THREE.SphereGeometry(0.1, 32, 32);
         const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-        const ball = new THREE.Mesh(geometry, material);
+        ball = new THREE.Mesh(geometry, material);
+        // Initially, place the ball 1 m in front of the camera.
+        // (This position will be updated each frame.)
         ball.position.set(0, 0, -1);
         scene.add(ball);
       }
@@ -143,9 +140,21 @@
         requestAnimationFrame(animate);
         if (arToolkitSource.ready === false) return;
         arToolkitContext.update(arToolkitSource.domElement);
+
+        // Update ball's world position so that it remains exactly 1 meter away from the camera
+        // in a chosen cardinal direction. For example, here we use "north" (assumed to be negative Z).
+        // If you want a different direction, adjust the offset accordingly.
+        let offset = new THREE.Vector3(0, 0, -1); // 1 meter toward negative Z ("north")
+        // Get the camera's world position
+        let cameraWorldPos = new THREE.Vector3();
+        camera.getWorldPosition(cameraWorldPos);
+        // Update the ball's position: new position = camera position + offset.
+        ball.position.copy(cameraWorldPos.clone().add(offset));
+
         renderer.render(scene, camera);
       }
 
+      // Start AR after user gesture
       document.getElementById("startButton").addEventListener("click", () => {
         document.getElementById("startButton").style.display = "none";
         init();
