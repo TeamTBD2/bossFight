@@ -53,18 +53,31 @@
       return new THREE.Vector3(x, y, z);
     }
 
-    // Example: Place the sphere at a specified lat/long (e.g., London: 51.5074° N, 0.1278° W)
-    const lat = 53.4697234; // Latitude for London
-    const lon = -2.2340321; // Longitude for London
-    const spherePosition = latLonTo3D(lat, lon, 2); // radius of 10 for scale
+    // Get current position using Geolocation API
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(position => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        const altitude = position.coords.altitude || 0; // Altitude is optional, use 0 if not available
 
-    // Create a red sphere
-    const geometry = new THREE.SphereGeometry(0.1, 32, 32); // radius, widthSegments, heightSegments
-    const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
-    const sphere = new THREE.Mesh(geometry, material);
+        // Convert lat/lon to 3D coordinates and apply altitude
+        const spherePosition = latLonTo3D(lat, lon, 10); // Radius 10 for scale
+        spherePosition.z += altitude / 1000; // Adjust z axis for altitude
 
-    sphere.position.copy(spherePosition); // Set the sphere position to lat/lon converted coordinates
-    scene.add(sphere);
+        // Create a red sphere
+        const geometry = new THREE.SphereGeometry(1, 32, 32); // radius, widthSegments, heightSegments
+        const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+        const sphere = new THREE.Mesh(geometry, material);
+
+        sphere.position.copy(spherePosition); // Set the sphere position to lat/lon converted coordinates
+        scene.add(sphere);
+
+      }, error => {
+        console.error('Geolocation error:', error);
+      });
+    } else {
+      console.error('Geolocation not supported by this browser.');
+    }
 
     // Lighting
     const light = new THREE.HemisphereLight(0xffffff, 0x444444);
