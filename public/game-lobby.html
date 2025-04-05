@@ -4,37 +4,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game Lobby</title>
+    <title>HOLO Game Lobby</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f0f2f5;
+            font-family: "Orbitron", "Audiowide", sans-serif;
+            background-color: #021526;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             margin: 0;
             padding: 20px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .grid-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.15;
         }
 
         .container {
-            background-color: white;
+            background-color: rgba(14, 28, 46, 0.8);
             padding: 40px;
             border-radius: 12px;
-            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 0 30px rgba(78, 154, 255, 0.2);
             text-align: center;
             width: 100%;
             max-width: 500px;
+            position: relative;
+            z-index: 1;
+            border: 1px solid rgba(78, 154, 255, 0.3);
+            backdrop-filter: blur(5px);
         }
 
         h1 {
             margin-top: 0;
-            color: #333;
+            color: white;
             font-size: 2.2em;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(78, 154, 255, 0.7);
         }
 
         p {
-            color: #666;
+            color: #a5c4e7;
             margin-bottom: 25px;
         }
 
@@ -47,29 +67,39 @@
             display: block;
             margin-bottom: 8px;
             font-weight: bold;
-            color: #555;
+            color: #4e9aff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.9em;
         }
 
         .form-group input {
             width: 100%;
             padding: 12px;
-            border: 2px solid #ddd;
+            background-color: rgba(8, 19, 32, 0.6);
+            border: 2px solid rgba(78, 154, 255, 0.4);
             border-radius: 6px;
             font-size: 1.1em;
             box-sizing: border-box;
+            color: white;
+            font-family: inherit;
         }
 
         .form-group input:focus {
-            border-color: #4e54c8;
+            border-color: #4e9aff;
             outline: none;
+            box-shadow: 0 0 15px rgba(78, 154, 255, 0.4);
         }
 
         .code-input {
             letter-spacing: 8px;
-            font-size: 1.5em;
-            text-align: center;
+            font-size: 0.2;
+            border-color: #43a047;
+            box-shadow: 0 0 15px rgba(67, 160, 71, 0.3);
+            width: 100%;
         }
 
+        /* Button Styles - Added from game-setup.html */
         .buttons {
             display: flex;
             justify-content: space-between;
@@ -77,42 +107,68 @@
         }
 
         button {
-            background-color: #4e54c8;
+            background-color: rgba(78, 154, 255, 0.2);
             color: white;
-            border: none;
-            padding: 15px 0;
+            border: 2px solid #4e9aff;
+            padding: 12px 25px;
             border-radius: 6px;
-            font-size: 1.1em;
+            font-size: 1em;
             cursor: pointer;
             transition: all 0.3s ease;
-            width: 48%;
+            font-family: inherit;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            box-shadow: 0 0 15px rgba(78, 154, 255, 0.3);
         }
 
         button:hover {
-            background-color: #3f43a3;
+            background-color: rgba(78, 154, 255, 0.4);
             transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(78, 154, 255, 0.5);
+        }
+
+        #join-button {
+            background-color: rgba(67, 160, 71, 0.2);
+            border-color: #43a047;
+            box-shadow: 0 0 15px rgba(67, 160, 71, 0.3);
+        }
+
+        #join-button:hover {
+            background-color: rgba(67, 160, 71, 0.4);
+            box-shadow: 0 0 20px rgba(67, 160, 71, 0.5);
         }
 
         #back-button {
-            background-color: #757575;
+            background-color: rgba(117, 117, 117, 0.2);
+            border-color: #757575;
+            box-shadow: 0 0 15px rgba(117, 117, 117, 0.3);
         }
 
         #back-button:hover {
-            background-color: #616161;
+            background-color: rgba(117, 117, 117, 0.4);
+            box-shadow: 0 0 20px rgba(117, 117, 117, 0.5);
+        }
+
+        #create-button:hover {
+            background-color: rgba(67, 160, 71, 0.4);
+            box-shadow: 0 0 20px rgba(67, 160, 71, 0.5);
         }
 
         .or-divider {
             display: flex;
             align-items: center;
             margin: 30px 0;
-            color: #888;
+            color: #a5c4e7;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.9em;
         }
 
         .or-divider::before,
         .or-divider::after {
             content: "";
             flex: 1;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid rgba(78, 154, 255, 0.3);
         }
 
         .or-divider::before {
@@ -127,16 +183,119 @@
             color: #e53935;
             margin-top: 5px;
             display: none;
+            font-size: 0.9em;
+            letter-spacing: 0.5px;
         }
 
         .loading {
             opacity: 0.7;
             cursor: not-allowed;
         }
+
+
+        /* Add futuristic font */
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Audiowide&display=swap');
     </style>
 </head>
 
 <body>
+    <!-- SVG Grid Background -->
+    <svg class="grid-background" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" preserveAspectRatio="none">
+        <!-- Grid lines -->
+        
+        <!-- Horizontal lines -->
+        <line x1="0" y1="50" x2="1000" y2="50" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="100" x2="1000" y2="100" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="150" x2="1000" y2="150" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="200" x2="1000" y2="200" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="250" x2="1000" y2="250" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="300" x2="1000" y2="300" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="350" x2="1000" y2="350" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="400" x2="1000" y2="400" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="450" x2="1000" y2="450" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="500" x2="1000" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="550" x2="1000" y2="550" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="600" x2="1000" y2="600" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="650" x2="1000" y2="650" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="700" x2="1000" y2="700" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="750" x2="1000" y2="750" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="800" x2="1000" y2="800" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="850" x2="1000" y2="850" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="900" x2="1000" y2="900" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="950" x2="1000" y2="950" stroke="#888888" stroke-width="1"/>
+        
+        <!-- Vertical lines -->
+        <line x1="50" y1="0" x2="50" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="100" y1="0" x2="100" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="150" y1="0" x2="150" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="200" y1="0" x2="200" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="250" y1="0" x2="250" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="300" y1="0" x2="300" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="350" y1="0" x2="350" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="400" y1="0" x2="400" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="450" y1="0" x2="450" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="500" y1="0" x2="500" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="550" y1="0" x2="550" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="600" y1="0" x2="600" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="650" y1="0" x2="650" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="700" y1="0" x2="700" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="750" y1="0" x2="750" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="800" y1="0" x2="800" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="850" y1="0" x2="850" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="900" y1="0" x2="900" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="950" y1="0" x2="950" y2="1000" stroke="#888888" stroke-width="1"/>
+        
+        <!-- Perspective lines -->
+        <!-- Top left to center -->
+        <line x1="0" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="100" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="200" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="300" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="400" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        
+        <!-- Top right to center -->
+        <line x1="1000" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="900" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="800" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="700" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="600" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        
+        <!-- Bottom left to center -->
+        <line x1="0" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="100" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="200" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="300" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="400" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        
+        <!-- Bottom right to center -->
+        <line x1="1000" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="900" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="800" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="700" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="600" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        
+        <!-- Left edge to center -->
+        <line x1="0" y1="100" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="200" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="300" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="400" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="600" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="700" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="800" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="900" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        
+        <!-- Right edge to center -->
+        <line x1="1000" y1="100" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="1000" y1="200" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="1000" y1="300" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="1000" y1="400" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="1000" y1="600" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="1000" y1="700" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="1000" y1="800" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="1000" y1="900" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+    </svg>
+
     <div class="container">
         <h1>Game Lobby</h1>
         <p>Enter a game code and your player name to join an existing game.</p>
@@ -159,10 +318,6 @@
                 <button type="submit" id="join-button">Join Game</button>
             </div>
         </form>
-
-        <div class="or-divider">or</div>
-
-        <button type="button" id="create-button">Create New Game</button>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -177,7 +332,6 @@
             const codeError = document.getElementById('code-error');
             const nameError = document.getElementById('name-error');
             const backButton = document.getElementById('back-button');
-            const createButton = document.getElementById('create-button');
             const joinButton = document.getElementById('join-button');
 
             // Set up socket event listeners first
@@ -209,25 +363,6 @@
                 joinButton.textContent = 'Join Game';
 
                 alert(error.message || 'Failed to join game');
-            });
-
-            socket.on('createSuccess', function (data) {
-                createButton.disabled = false;
-                createButton.classList.remove('loading');
-                createButton.textContent = 'Create New Game';
-
-                // Store player ID and host status in localStorage
-                localStorage.setItem('currentPlayerId', data.playerId);
-                localStorage.setItem('isHost', data.isHost || true);
-                window.location.href = `/game-setup?id=${data.gameId}`;
-            });
-
-            socket.on('createError', function (error) {
-                createButton.disabled = false;
-                createButton.classList.remove('loading');
-                createButton.textContent = 'Create New Game';
-
-                alert(error.message || 'Failed to create game');
             });
 
             // Load previously used player name if available
@@ -282,24 +417,6 @@
             // Back button handler
             backButton.addEventListener('click', function () {
                 window.location.href = '/';
-            });
-
-            // Create game button handler
-            createButton.addEventListener('click', function () {
-                const playerName = playerNameInput.value.trim() || 'Anonymous Player';
-
-                // Save player name for future use
-                if (playerName !== 'Anonymous Player') {
-                    localStorage.setItem('playerName', playerName);
-                }
-
-                // Disable the create button and show loading state
-                createButton.disabled = true;
-                createButton.classList.add('loading');
-                createButton.textContent = 'Creating...';
-
-                // Create a new game via socket
-                socket.emit('createGame', { hostName: playerName });
             });
         });
     </script>
