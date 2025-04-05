@@ -2,9 +2,8 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8" />
-  <title>WebXR AR Camera Feed with Lat/Long Sphere</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <title>WebXR AR with DOM Overlay</title>
   <style>
     body {
       margin: 0;
@@ -15,118 +14,125 @@
       display: block;
     }
 
-    .ar-button {
+    #overlay {
       position: absolute;
       top: 20px;
       left: 20px;
       z-index: 10;
+      background-color: rgba(0, 0, 0, 0.5);
+      padding: 10px;
+      border-radius: 8px;
+    }
+
+    #moveButton {
+      padding: 10px;
       background-color: #2980b9;
       color: white;
       border: none;
-      padding: 10px;
+      border-radius: 4px;
       cursor: pointer;
     }
 
-    .ar-button:hover {
+    #moveButton:hover {
       background-color: #1d6c8c;
     }
   </style>
 </head>
 
 <body>
-  <script src="https://cdn.jsdelivr.net/npm/webxr-polyfill"></script>
+  <div id="overlay">
+    <button id="moveButton">Move Object</button>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
   <script>
-    const polyfill = new WebXRPolyfill();
-  </script>
-
-  <script type="module">
-    import * as THREE from 'https://cdn.skypack.dev/three@0.150.1';
-    import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/webxr/ARButton.js';
-
+    // Initialize the scene, camera, and renderer
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera();
-
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.xr.enabled = true;
-    renderer.xr.setReferenceSpaceType('local');
     document.body.appendChild(renderer.domElement);
 
-    // Create the AR Button
-    const arButton = ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] });
-    arButton.classList.add('ar-button');
+    // Create the AR button
+    const arButton = document.createElement('button');
+    arButton.style.position = 'absolute';
+    arButton.style.top = '20px';
+    arButton.style.left = 'calc(50% - 50px)';
+    arButton.style.zIndex = '10';
+    arButton.style.backgroundColor = '#2980b9';
+    arButton.style.color = 'white';
+    arButton.style.border = 'none';
+    arButton.style.padding = '10px';
+    arButton.style.borderRadius = '4px';
+    arButton.textContent = 'Start AR';
     document.body.appendChild(arButton);
 
     // Function to convert latitude and longitude to 3D coordinates
     function latLonTo3D(lat, lon, radius = 10) {
       const phi = (90 - lat) * (Math.PI / 180); // Convert latitude to radians
       const theta = (lon + 180) * (Math.PI / 180); // Convert longitude to radians
-
-      // Spherical to Cartesian conversion
       const x = radius * Math.sin(phi) * Math.cos(theta);
       const y = radius * Math.cos(phi);
       const z = radius * Math.sin(phi) * Math.sin(theta);
-
       return new THREE.Vector3(x, y, z);
     }
 
     // Create a red sphere
-    const geometry = new THREE.SphereGeometry(1, 32, 32); // radius, widthSegments, heightSegments
+    const geometry = new THREE.SphereGeometry(1, 32, 32);
     const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
     const sphere = new THREE.Mesh(geometry, material);
     scene.add(sphere);
-
-    // Get current position using Geolocation API
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(position => {
-        const lat = position.coords.latitude;
-        const lon = position.coords.longitude;
-        const altitude = position.coords.altitude || 0; // Altitude is optional, use 0 if not available
-
-        // Convert lat/lon to 3D coordinates and apply altitude
-        const spherePosition = latLonTo3D(lat, lon, 10); // Radius 10 for scale
-        spherePosition.z += altitude / 1000; // Adjust z axis for altitude
-
-        // Set initial sphere position
-        sphere.position.copy(spherePosition);
-      }, error => {
-        console.error('Geolocation error:', error);
-      });
-    } else {
-      console.error('Geolocation not supported by this browser.');
-    }
 
     // Lighting
     const light = new THREE.HemisphereLight(0xffffff, 0x444444);
     scene.add(light);
 
+    // Function to start the AR session
+    function startAR() {
+      const sessionInit = {
+        optionalFeatures: ['dom-overlay'],
+        domOverlay: { root: document.getElementById('overlay') }
+      };
+      navigator.xr.requestSession('immersive-ar', sessionInit).then(onSessionStarted);
+    }
+
+    // Function called when the AR session starts
+    function onSessionStarted(session) {
+      session.addEventListener('end', onSessionEnded);
+      renderer.xr.setReferenceSpaceType('local');
+      renderer.xr.setSession(session);
+      arButton.textContent = 'Stop AR';
+    }
+
+    // Function called when the AR session ends
+    function onSessionEnded() {
+      arButton.textContent = 'Start AR';
+    }
+
+    // Event listener for the AR button
+    arButton.addEventListener('click', () => {
+      if (renderer.xr.getSession() === null) {
+        startAR();
+      } else {
+        renderer.xr.getSession().end();
+      }
+    });
+
+    // Event listener for the move button
+    document.getElementById('moveButton').addEventListener('click', () => {
+      // Adjust the sphere's position
+      sphere.position.x += 1;
+      sphere.position.y += 1;
+      sphere.position.z += 1;
+    });
+
+    // Animation loop
     function animate() {
       renderer.setAnimationLoop(() => {
         renderer.render(scene, camera);
       });
     }
-
     animate();
-
-    // WebXR Controller Input
-    function onControllerInput(controller) {
-      // We use the position or rotation of the controller to move the sphere
-      const grip = controller.inputSource.gripSpace;
-      if (grip) {
-        grip.getWorldPosition(sphere.position);  // Update sphere position to controller's grip position
-      }
-    }
-
-    renderer.xr.getController(0).addEventListener('selectstart', () => {
-      // When the controller selects, move the sphere or change some property
-      console.log('Controller select start');
-    });
-
-    // Track controllers
-    renderer.xr.addEventListener('controllerconnected', (event) => {
-      const controller = event.data;
-      controller.addEventListener('selectstart', onControllerInput);
-    });
   </script>
 </body>
 
