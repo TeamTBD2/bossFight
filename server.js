@@ -21,4 +21,9 @@ app.get("*", (req, res) => {
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  window.addEventListener("gpsupdateMessage", (event) => {
+    const { pos, distMoved } = event.detail;
+    console.log("Received GPS update message:", pos, distMoved);
+    // Handle the message here
+  });
 });
