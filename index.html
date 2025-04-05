@@ -29,7 +29,6 @@
 
 <body>
   <div id="overlay">Locating...</div>
-
   <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
   <script>
     const scene = new THREE.Scene();
@@ -56,27 +55,23 @@
 
     // Convert lat/lon difference to meters
     function geoToMeters(lat1, lon1, lat2, lon2) {
-      const R = 6371000; // Earth radius in meters
+      const R = 6371000; // Earth's radius in meters
       const dLat = (lat2 - lat1) * Math.PI / 180;
       const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      const distance = R * c;
 
-      // Approximate direction in meters
-      const x = R * dLon * Math.cos((lat1 + lat2) * Math.PI / 360);
-      const z = R * dLat;
+      // Scale for longitude at a given latitude
+      const x = R * dLon * Math.cos((lat1 + lat2) * Math.PI / 360);  // Adjust for longitude
+      const z = R * dLat;  // Latitude is straightforward
+
       return { x, z };
     }
 
-    // Target GPS coords (for demonstration)
+    // Target GPS coordinates (latitude and longitude)
     const targetLat = 53.4697234;
     const targetLon = -2.2340321;
 
-    // Create sphere
-    const geometry = new THREE.SphereGeometry(0.5, 32, 32);
+    // Create sphere with a larger size for visibility
+    const geometry = new THREE.SphereGeometry(5, 32, 32);  // Increase radius to 5 meters
     const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
     const sphere = new THREE.Mesh(geometry, material);
 
@@ -84,15 +79,23 @@
     const light = new THREE.HemisphereLight(0xffffff, 0x444444);
     scene.add(light);
 
-    function placeSphereAtLocation() {
-      // Use the target coordinates to place the sphere at the specified location
-      const offset = geoToMeters(0, 0, targetLat, targetLon); // Use lat/lon differences from the origin (0,0)
+    // Add directional light
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(0, 10, 10).normalize();
+    scene.add(directionalLight);
 
-      // In AR space, z is forward, x is sideways
-      sphere.position.set(offset.x, 0, -offset.z);
+    // Function to place the sphere based on the calculated offset from user to target
+    function placeSphereAtLocation(userLat, userLon) {
+      // Calculate the offset in meters between user location and target location
+      const offset = geoToMeters(userLat, userLon, targetLat, targetLon);
+
+      // Use offset values for positioning (x = east-west, z = north-south)
+      sphere.position.set(offset.x, 0, -offset.z);  // Position the sphere relative to the user
+
       scene.add(sphere);
 
       overlay.innerHTML = `
+        Your Location: ${userLat.toFixed(5)}, ${userLon.toFixed(5)}<br/>
         Target Location: ${targetLat.toFixed(5)}, ${targetLon.toFixed(5)}<br/>
         Offset: x=${offset.x.toFixed(2)}m, z=${offset.z.toFixed(2)}m
       `;
@@ -108,7 +111,7 @@
     }
 
     function onSessionStarted(session) {
-      renderer.xr.setReferenceSpaceType('local');
+      renderer.xr.setReferenceSpaceType('viewer');  // Use 'viewer' instead of 'local'
       renderer.xr.setSession(session);
       arButton.textContent = 'Stop AR';
     }
@@ -128,14 +131,13 @@
       }
     });
 
-    // Commented out the Geolocation API code
-    /*
+    // Use Geolocation API to get user location
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         position => {
           const userLat = position.coords.latitude;
           const userLon = position.coords.longitude;
-          placeSphereAtLocation(userLat, userLon);
+          placeSphereAtLocation(userLat, userLon);  // Place sphere at calculated offset
         },
         error => {
           overlay.textContent = "Error getting location.";
@@ -146,10 +148,6 @@
     } else {
       overlay.textContent = "Geolocation not supported.";
     }
-    */
-
-    // Place the sphere at the specified target location
-    placeSphereAtLocation();
 
     animate();
   </script>
