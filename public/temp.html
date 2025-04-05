@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HOLO Game Portal</title>
+    <style>
+        body {
+            font-family: "Orbitron", "Audiowide", sans-serif;
+            background-color: #021526;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .grid-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.15;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo {
+            margin-bottom: 50px;
+        }
+
+        .logo div {
+            font-size: 8rem;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.7);
+            background: linear-gradient(to bottom, #ffffff, #4e9aff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0;
+        }
+
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 240px;
+        }
+
+        button {
+            background-color: rgba(78, 154, 255, 0.2);
+            color: white;
+            border: 2px solid #4e9aff;
+            padding: 15px 0;
+            border-radius: 6px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            box-shadow: 0 0 15px rgba(78, 154, 255, 0.3);
+        }
+
+        button:hover {
+            background-color: rgba(78, 154, 255, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(78, 154, 255, 0.5);
+        }
+
+        #create-game {
+            background-color: rgba(67, 160, 71, 0.2);
+            border-color: #43a047;
+            box-shadow: 0 0 15px rgba(67, 160, 71, 0.3);
+        }
+
+        #create-game:hover {
+            background-color: rgba(67, 160, 71, 0.4);
+            box-shadow: 0 0 20px rgba(67, 160, 71, 0.5);
+        }
+
+        /* Add futuristic font */
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Audiowide&display=swap');
+    </style>
+</head>
+
+<body>
+    <!-- SVG Grid Background -->
+    <svg class="grid-background" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" preserveAspectRatio="none">
+        <!-- Grid lines -->
+        
+        <!-- Horizontal lines -->
+        <line x1="0" y1="50" x2="1000" y2="50" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="100" x2="1000" y2="100" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="150" x2="1000" y2="150" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="200" x2="1000" y2="200" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="250" x2="1000" y2="250" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="300" x2="1000" y2="300" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="350" x2="1000" y2="350" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="400" x2="1000" y2="400" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="450" x2="1000" y2="450" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="500" x2="1000" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="550" x2="1000" y2="550" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="600" x2="1000" y2="600" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="650" x2="1000" y2="650" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="700" x2="1000" y2="700" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="750" x2="1000" y2="750" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="800" x2="1000" y2="800" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="850" x2="1000" y2="850" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="900" x2="1000" y2="900" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="950" x2="1000" y2="950" stroke="#888888" stroke-width="1"/>
+        
+        <!-- Vertical lines -->
+        <line x1="50" y1="0" x2="50" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="100" y1="0" x2="100" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="150" y1="0" x2="150" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="200" y1="0" x2="200" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="250" y1="0" x2="250" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="300" y1="0" x2="300" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="350" y1="0" x2="350" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="400" y1="0" x2="400" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="450" y1="0" x2="450" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="500" y1="0" x2="500" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="550" y1="0" x2="550" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="600" y1="0" x2="600" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="650" y1="0" x2="650" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="700" y1="0" x2="700" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="750" y1="0" x2="750" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="800" y1="0" x2="800" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="850" y1="0" x2="850" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="900" y1="0" x2="900" y2="1000" stroke="#888888" stroke-width="1"/>
+        <line x1="950" y1="0" x2="950" y2="1000" stroke="#888888" stroke-width="1"/>
+        
+        <!-- Perspective lines -->
+        <!-- Top left to center -->
+        <line x1="0" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="100" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="200" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="300" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="400" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        
+        <!-- Top right to center -->
+        <line x1="1000" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="900" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="800" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="700" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="600" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        
+        <!-- Bottom left to center -->
+        <line x1="0" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="100" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="200" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="300" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="400" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        
+        <!-- Bottom right to center -->
+        <line x1="1000" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="900" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="800" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="700" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="600" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        
+        <!-- Left edge to center -->
+        <line x1="0" y1="100" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="200" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="300" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="400" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="600" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="700" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="800" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="0" y1="900" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        
+        <!-- Right edge to center -->
+        <line x1="1000" y1="100" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="1000" y1="200" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="1000" y1="300" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="1000" y1="400" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="1000" y1="600" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="1000" y1="700" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="1000" y1="800" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+        <line x1="1000" y1="900" x2="500" y2="500" stroke="#888888" stroke-width="1"/>
+    </svg>
+
+    <div class="container">
+        <div class="logo">
+            <div>H</div>
+            <div>O</div>
+            <div>L</div>
+            <div>O</div>
+        </div>
+        <div class="button-container">
+            <button id="join-game">Join Game</button>
+            <button id="create-game">Create Game</button>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Connect to Socket.io
+            const socket = io();
+            const createGameBtn = document.getElementById('create-game');
+            const joinGameBtn = document.getElementById('join-game');
+
+            // Setup event listeners for socket events
+            socket.on('createSuccess', function (data) {
+                console.log('Game created successfully:', data);
+
+                // Store player ID and host status in localStorage
+                localStorage.setItem('currentPlayerId', data.playerId);
+                localStorage.setItem('isHost', data.isHost);
+
+                // Navigate to the game setup page
+                window.location.href = `/game-setup?id=${data.gameId}`;
+            });
+
+            socket.on('createError', function (error) {
+                createGameBtn.classList.remove('loading');
+                createGameBtn.textContent = 'Create Game';
+                createGameBtn.disabled = false;
+                alert(error.message || 'Failed to create game');
+            });
+
+            // Join Game button event listener
+            joinGameBtn.addEventListener('click', function () {
+                // Redirect to the game lobby page where users can enter a game code
+                window.location.href = '/game-lobby';
+            });
+
+            // Create Game button event listener
+            createGameBtn.addEventListener('click', function () {
+                // Prevent double-clicking
+                if (createGameBtn.disabled) return;
+
+                // Show loading state
+                createGameBtn.disabled = true;
+                createGameBtn.textContent = 'Creating Game...';
+                createGameBtn.classList.add('loading');
+
+                // Get username from localStorage or use default
+                const hostName = localStorage.getItem('username') || localStorage.getItem('playerName') || 'Anonymous Player';
+
+                // Create a new game via socket
+                socket.emit('createGame', { hostName });
+            });
+        });
+    </script>
+</body>
+
+</html>

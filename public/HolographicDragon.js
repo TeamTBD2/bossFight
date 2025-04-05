@@ -14,11 +14,15 @@ export class HolographicDragon {
       loader.load(
         "./animation.glb",
         (gltf) => {
+          console.log("GLTF Loaded:", gltf);
           this._processModel(gltf);
           resolve(this);
         },
         undefined,
-        (error) => reject(error)
+        (error) => {
+          console.error("Error loading GLTF:", error);
+          reject(error);
+        }
       );
     });
   }
@@ -50,6 +54,7 @@ export class HolographicDragon {
 
     // Set up animations
     if (gltf.animations?.length) {
+      console.log("Animations found:", gltf.animations);
       this.mixer = new THREE.AnimationMixer(this.model);
       const idleClip = THREE.AnimationClip.findByName(
         gltf.animations,
