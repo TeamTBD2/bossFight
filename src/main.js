@@ -25,6 +25,7 @@ const deviceOrientationControls = new LocAR.DeviceOrientationControls(camera);
 
 locar.on("gpsupdate", (pos, distMoved) => {
   if (firstLocation) {
+    console.log("Updating")
     let originalPos = pos;
 
     const boxProps = [{
