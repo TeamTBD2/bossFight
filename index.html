@@ -114,7 +114,7 @@
           const distance = camPosition.distanceTo(objPosition);
 
           // Always show if within 20 meters
-          if (distance < 1000) {
+          if (distance < 20) {
             this.el.setAttribute("visible", true);
             return;
           }
@@ -143,7 +143,7 @@
 
         // Larger, more visible sphere
         const sphere = document.createElement("a-sphere");
-        sphere.setAttribute("radius", "2"); // Increased from 0.5 to 5 meters
+        sphere.setAttribute("radius", "5"); // Increased from 0.5 to 5 meters
         sphere.setAttribute("color", color);
         sphere.setAttribute("opacity", "0.9");
         sphere.setAttribute("material", "shader: flat;"); // Better visibility
