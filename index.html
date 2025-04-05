@@ -15,34 +15,6 @@
       display: block;
     }
 
-    .controls {
-      position: fixed;
-      /* Make it stay in the same place even when AR is fullscreen */
-      top: 10px;
-      left: 10px;
-      background-color: rgba(0, 0, 0, 0.5);
-      padding: 10px;
-      color: white;
-      font-family: Arial, sans-serif;
-      z-index: 999;
-      /* Ensure controls are on top of the AR content */
-      display: none;
-      /* Initially hidden */
-    }
-
-    .controls button {
-      margin-top: 10px;
-      padding: 5px;
-      background-color: #3498db;
-      border: none;
-      color: white;
-      cursor: pointer;
-    }
-
-    .controls button:hover {
-      background-color: #2980b9;
-    }
-
     .ar-button {
       position: absolute;
       top: 20px;
@@ -136,42 +108,24 @@
 
     animate();
 
-    // UI for controlling sphere position
-    const controlsDiv = document.createElement('div');
-    controlsDiv.className = 'controls';
-    document.body.appendChild(controlsDiv);
+    // WebXR Controller Input
+    function onControllerInput(controller) {
+      // We use the position or rotation of the controller to move the sphere
+      const grip = controller.inputSource.gripSpace;
+      if (grip) {
+        grip.getWorldPosition(sphere.position);  // Update sphere position to controller's grip position
+      }
+    }
 
-    const decreaseXButton = document.createElement('button');
-    const decreaseYButton = document.createElement('button');
-    const decreaseZButton = document.createElement('button');
-
-    decreaseXButton.textContent = 'Decrease X';
-    decreaseYButton.textContent = 'Decrease Y';
-    decreaseZButton.textContent = 'Decrease Z';
-
-    controlsDiv.appendChild(decreaseXButton);
-    controlsDiv.appendChild(decreaseYButton);
-    controlsDiv.appendChild(decreaseZButton);
-
-    // Set the decrement value
-    const decrementValue = 0.1;
-
-    // Add event listeners to the buttons
-    decreaseXButton.addEventListener('click', () => {
-      sphere.position.x -= decrementValue;
+    renderer.xr.getController(0).addEventListener('selectstart', () => {
+      // When the controller selects, move the sphere or change some property
+      console.log('Controller select start');
     });
 
-    decreaseYButton.addEventListener('click', () => {
-      sphere.position.y -= decrementValue;
-    });
-
-    decreaseZButton.addEventListener('click', () => {
-      sphere.position.z -= decrementValue;
-    });
-
-    // Show the controls after AR session is started
-    arButton.addEventListener('click', () => {
-      controlsDiv.style.display = 'block'; // Show controls when AR session starts
+    // Track controllers
+    renderer.xr.addEventListener('controllerconnected', (event) => {
+      const controller = event.data;
+      controller.addEventListener('selectstart', onControllerInput);
     });
   </script>
 </body>
