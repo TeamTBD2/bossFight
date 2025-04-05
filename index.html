@@ -26,12 +26,8 @@
       font-family: Arial, sans-serif;
       z-index: 10;
       /* Ensures buttons are on top of AR scene */
-    }
-
-    .controls input {
-      margin: 5px;
-      padding: 5px;
-      width: 60px;
+      display: none;
+      /* Initially hidden */
     }
 
     .controls button {
@@ -45,6 +41,22 @@
 
     .controls button:hover {
       background-color: #2980b9;
+    }
+
+    .ar-button {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 10;
+      background-color: #2980b9;
+      color: white;
+      border: none;
+      padding: 10px;
+      cursor: pointer;
+    }
+
+    .ar-button:hover {
+      background-color: #1d6c8c;
     }
   </style>
 </head>
@@ -70,7 +82,9 @@
     document.body.appendChild(renderer.domElement);
 
     // Add AR Button
-    document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
+    const arButton = ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] });
+    arButton.classList.add('ar-button');
+    document.body.appendChild(arButton);
 
     // Function to convert latitude and longitude to 3D coordinates
     function latLonTo3D(lat, lon, radius = 10) {
@@ -128,33 +142,37 @@
     controlsDiv.className = 'controls';
     document.body.appendChild(controlsDiv);
 
-    const xInput = document.createElement('input');
-    const yInput = document.createElement('input');
-    const zInput = document.createElement('input');
-    const button = document.createElement('button');
+    const decreaseXButton = document.createElement('button');
+    const decreaseYButton = document.createElement('button');
+    const decreaseZButton = document.createElement('button');
 
-    xInput.type = 'number';
-    yInput.type = 'number';
-    zInput.type = 'number';
-    button.textContent = 'Set Position';
+    decreaseXButton.textContent = 'Decrease X';
+    decreaseYButton.textContent = 'Decrease Y';
+    decreaseZButton.textContent = 'Decrease Z';
 
-    xInput.placeholder = 'X';
-    yInput.placeholder = 'Y';
-    zInput.placeholder = 'Z';
+    controlsDiv.appendChild(decreaseXButton);
+    controlsDiv.appendChild(decreaseYButton);
+    controlsDiv.appendChild(decreaseZButton);
 
-    controlsDiv.appendChild(xInput);
-    controlsDiv.appendChild(yInput);
-    controlsDiv.appendChild(zInput);
-    controlsDiv.appendChild(button);
+    // Set the decrement value
+    const decrementValue = 0.1;
 
-    // Add event listener to the button
-    button.addEventListener('click', () => {
-      const newX = parseFloat(xInput.value);
-      const newY = parseFloat(yInput.value);
-      const newZ = parseFloat(zInput.value);
+    // Add event listeners to the buttons
+    decreaseXButton.addEventListener('click', () => {
+      sphere.position.x -= decrementValue;
+    });
 
-      // Update the sphere position
-      sphere.position.set(newX, newY, newZ);
+    decreaseYButton.addEventListener('click', () => {
+      sphere.position.y -= decrementValue;
+    });
+
+    decreaseZButton.addEventListener('click', () => {
+      sphere.position.z -= decrementValue;
+    });
+
+    // Show the controls after AR session is started
+    arButton.addEventListener('click', () => {
+      controlsDiv.style.display = 'block'; // Show controls when AR session starts
     });
   </script>
 </body>
