@@ -28,8 +28,6 @@ locar.on("gpsupdate", (pos, distMoved) => {
     alert(`Got the initial location: longitude ${pos.coords.longitude}, latitude ${pos.coords.latitude}`);
 
     const boxProps = [{
-      latDis: 0.0005,
-      lonDis: 0,
       colour: 0xff0000
     }];
 
