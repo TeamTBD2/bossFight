@@ -23,80 +23,48 @@ let firstLocation = true;
 
 const deviceOrientationControls = new LocAR.DeviceOrientationControls(camera);
 
-// locar.on("gpsupdate", (pos, distMoved) => {
-//     if(firstLocation) {
+locar.on("gpsupdate", (pos, distMoved) => {
+  if (firstLocation) {
+    let originalPos = pos;
 
-//         const boxProps = [{
-//             latDis: 0.0005,
-//             lonDis: 0,
-//             colour: 0xff0000
-//         }, {
-//             latDis: -0.0005,
-//             lonDis: 0,
-//             colour: 0xffff00
-//         }, {
-//             latDis: 0,
-//             lonDis: -0.0005,
-//             colour: 0x00ffff
-//         }, {
-//             latDis: 0,
-//             lonDis: 0.0005,
-//             colour: 0x00ff00
-//         }];
+    const boxProps = [{
+      latDis: 0.0005,
+      lonDis: 0,
+      colour: 0xff0000
+    }, {
+      latDis: -0.0005,
+      lonDis: 0,
+      colour: 0xffff00
+    }, {
+      latDis: 0,
+      lonDis: -0.0005,
+      colour: 0x00ffff
+    }, {
+      latDis: 0,
+      lonDis: 0.0005,
+      colour: 0x00ff00
+    }];
 
-//         const geom = new THREE.BoxGeometry(10,10,10);
+    const geom = new THREE.BoxGeometry(10, 10, 10);
 
-//         for(const boxProp of boxProps) {
-//             const mesh = new THREE.Mesh(
-//                 geom, 
-//                 new THREE.MeshBasicMaterial({color: boxProp.colour})
-//             );
+    for (const boxProp of boxProps) {
+      const mesh = new THREE.Mesh(
+        geom,
+        new THREE.MeshBasicMaterial({ color: boxProp.colour })
+      );
 
-//             locar.add(
-//                 mesh, 
-//                 pos.coords.longitude + boxProp.lonDis, 
-//                 pos.coords.latitude + boxProp.latDis
-//             );
-//         }
+      locar.add(
+        mesh,
+        originalPos.coords.longitude + boxProp.lonDis,
+        originalPos.coords.latitude + boxProp.latDis
+      );
+    }
 
-//         firstLocation = false;
-//     }
-// });
+    firstLocation = false;
+  }
+});
 
 locar.startGps();
-
-const boxProps = [{
-  latDis: 0.0005,
-  lonDis: 0,
-  colour: 0xff0000
-}, {
-  latDis: -0.0005,
-  lonDis: 0,
-  colour: 0xffff00
-}, {
-  latDis: 0,
-  lonDis: -0.0005,
-  colour: 0x00ffff
-}, {
-  latDis: 0,
-  lonDis: 0.0005,
-  colour: 0x00ff00
-}];
-
-const geom = new THREE.BoxGeometry(10, 10, 10);
-
-for (const boxProp of boxProps) {
-  const mesh = new THREE.Mesh(
-    geom,
-    new THREE.MeshBasicMaterial({ color: boxProp.colour })
-  );
-
-  locar.add(
-    mesh,
-    pos.coords.longitude + boxProp.lonDis,
-    pos.coords.latitude + boxProp.latDis
-  );
-}
 
 renderer.setAnimationLoop(animate);
 
