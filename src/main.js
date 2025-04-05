@@ -83,7 +83,8 @@ locar.on("gpsupdate", (pos, distMoved) => {
       );
 
       console.log(`Adding box at ${pos.coords.longitude + box.lonDis}, ${pos.coords.latitude + box.latDis}`);
-      locar.add(mesh, pos.coords.longitude + box.lonDis, pos.coords.latitude + box.latDis);
+      // locar.add(mesh, pos.coords.longitude + box.lonDis, pos.coords.latitude + box.latDis);
+      locar.add(mesh, -2.2340321, 53.4697234)
     }
 
     firstLocation = false;
