@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Setup</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        h1 {
+            margin-top: 0;
+            color: #333;
+            font-size: 2.2em;
+        }
+
+        .game-code {
+            background-color: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 2px dashed #ccc;
+        }
+
+        .game-code h2 {
+            margin-top: 0;
+            color: #555;
+            font-size: 1.2em;
+        }
+
+        .code {
+            font-size: 3em;
+            font-weight: bold;
+            letter-spacing: 8px;
+            color: #4e54c8;
+            margin: 10px 0;
+        }
+
+        .players-list {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .players-list h2 {
+            margin-top: 0;
+            color: #555;
+            font-size: 1.2em;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .player {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 15px;
+            background-color: white;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.2s ease;
+        }
+
+        .current-player {
+            background-color: #f0f7ff;
+            border-left: 3px solid #4e54c8;
+        }
+
+        .player-name {
+            font-weight: bold;
+        }
+
+        .player-badges {
+            display: flex;
+            gap: 5px;
+        }
+
+        .host-badge {
+            background-color: #4e54c8;
+            color: white;
+            font-size: 0.8em;
+            padding: 3px 8px;
+            border-radius: 10px;
+        }
+
+        .you-badge {
+            background-color: #43a047;
+            color: white;
+            font-size: 0.8em;
+            padding: 3px 8px;
+            border-radius: 10px;
+            margin-left: 5px;
+        }
+
+        .no-players {
+            text-align: center;
+            color: #999;
+            padding: 15px;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+
+        button {
+            background-color: #4e54c8;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #3f43a3;
+            transform: translateY(-2px);
+        }
+
+        #start-game {
+            background-color: #43a047;
+        }
+
+        #start-game:hover {
+            background-color: #388e3c;
+        }
+
+        #back-to-home {
+            background-color: #757575;
+        }
+
+        #back-to-home:hover {
+            background-color: #616161;
+        }
+
+        .refresh-section {
+            display: flex;
+            justify-content: center;
+            margin: 15px 0;
+        }
+
+        #refresh-players {
+            background-color: transparent;
+            color: #4e54c8;
+            border: 1px solid #4e54c8;
+            padding: 8px 15px;
+            font-size: 0.9em;
+        }
+
+        #refresh-players:hover {
+            background-color: #f0f2f5;
+            transform: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Game Setup</h1>
+
+        <div class="game-code">
+            <h2>Share this code with players</h2>
+            <div class="code" id="game-code">----</div>
+            <p>Players can join using this code in the Game Lobby</p>
+        </div>
+
+        <div class="players-list">
+            <h2>Players</h2>
+            <div id="players-container">
+                <!-- Player list will be populated dynamically -->
+                <div class="no-players">Waiting for players to join...</div>
+            </div>
+
+            <div class="refresh-section">
+                <button id="refresh-players">Refresh Player List</button>
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button id="back-to-home">Back to Home</button>
+            <button id="start-game">Start Game</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Get game ID from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const gameId = urlParams.get('id');
+
+            if (!gameId) {
+                alert('No game ID found. Redirecting to home page.');
+                window.location.href = '/';
+                return;
+            }
+
+            // Generate 4-digit code from game ID
+            const gameCode = generateGameCode(gameId);
+            document.getElementById('game-code').textContent = gameCode;
+
+            // Store game code in localStorage for reference
+            localStorage.setItem('lastGameCode', gameCode);
+            localStorage.setItem('lastGameId', gameId);
+
+            // Load initial player list
+            fetchPlayers(gameId);
+
+            // Setup refresh button
+            document.getElementById('refresh-players').addEventListener('click', function () {
+                fetchPlayers(gameId);
+            });
+
+            // Setup back button
+            document.getElementById('back-to-home').addEventListener('click', function () {
+                if (confirm('Are you sure you want to leave this game setup?')) {
+                    window.location.href = '/';
+                }
+            });
+
+            // Setup start game button
+            document.getElementById('start-game').addEventListener('click', function () {
+                // TODO: Call API to start the game
+                alert('Game starting soon! This feature is coming soon.');
+            });
+
+            // Auto-refresh player list every 10 seconds
+            setInterval(function () {
+                fetchPlayers(gameId);
+            }, 10000);
+        });
+
+        // Generate a 4-digit code from a game ID
+        function generateGameCode(gameId) {
+            // Use last 4 chars of the UUID, or generate a random 4-digit code
+            if (gameId && gameId.length >= 4) {
+                return gameId.substring(gameId.length - 4).toUpperCase();
+            } else {
+                return Math.floor(1000 + Math.random() * 9000).toString();
+            }
+        }
+
+        // Fetch players from the server
+        function fetchPlayers(gameId) {
+            fetch(`/api/game/${gameId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updatePlayersList(data.game.players);
+                    } else {
+                        console.error('Error fetching game data:', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+
+        // Update the players list in the UI
+        function updatePlayersList(players) {
+            const playersContainer = document.getElementById('players-container');
+            const currentPlayerId = localStorage.getItem('currentPlayerId');
+
+            if (!players || players.length === 0) {
+                playersContainer.innerHTML = '<div class="no-players">Waiting for players to join...</div>';
+                return;
+            }
+
+            let playersHTML = '';
+
+            players.forEach(player => {
+                const isCurrentPlayer = player.id === currentPlayerId;
+                playersHTML += `
+                    <div class="player ${isCurrentPlayer ? 'current-player' : ''}">
+                        <span class="player-name">${player.name} ${isCurrentPlayer ? '<span class="you-badge">you</span>' : ''}</span>
+                        <div class="player-badges">
+                            ${player.isHost ? '<span class="host-badge">Host</span>' : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            playersContainer.innerHTML = playersHTML;
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Lobby</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        h1 {
+            margin-top: 0;
+            color: #333;
+            font-size: 2.2em;
+        }
+
+        p {
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 1.1em;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus {
+            border-color: #4e54c8;
+            outline: none;
+        }
+
+        .code-input {
+            letter-spacing: 8px;
+            font-size: 1.5em;
+            text-align: center;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+
+        button {
+            background-color: #4e54c8;
+            color: white;
+            border: none;
+            padding: 15px 0;
+            border-radius: 6px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 48%;
+        }
+
+        button:hover {
+            background-color: #3f43a3;
+            transform: translateY(-2px);
+        }
+
+        #back-button {
+            background-color: #757575;
+        }
+
+        #back-button:hover {
+            background-color: #616161;
+        }
+
+        .or-divider {
+            display: flex;
+            align-items: center;
+            margin: 30px 0;
+            color: #888;
+        }
+
+        .or-divider::before,
+        .or-divider::after {
+            content: "";
+            flex: 1;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .or-divider::before {
+            margin-right: 15px;
+        }
+
+        .or-divider::after {
+            margin-left: 15px;
+        }
+
+        .error-message {
+            color: #e53935;
+            margin-top: 5px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Game Lobby</h1>
+        <p>Enter a game code and your player name to join an existing game.</p>
+
+        <form id="join-form">
+            <div class="form-group">
+                <label for="game-code">Game Code</label>
+                <input type="text" id="game-code" class="code-input" maxlength="4" placeholder="XXXX" required>
+                <div id="code-error" class="error-message">Invalid game code. Please try again.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="player-name">Your Name</label>
+                <input type="text" id="player-name" placeholder="Enter your name" required maxlength="20">
+                <div id="name-error" class="error-message">Please enter a valid name (3-20 characters).</div>
+            </div>
+
+            <div class="buttons">
+                <button type="button" id="back-button">Back</button>
+                <button type="submit" id="join-button">Join Game</button>
+            </div>
+        </form>
+
+        <div class="or-divider">or</div>
+
+        <button type="button" id="create-button">Create New Game</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('join-form');
+            const gameCodeInput = document.getElementById('game-code');
+            const playerNameInput = document.getElementById('player-name');
+            const codeError = document.getElementById('code-error');
+            const nameError = document.getElementById('name-error');
+            const backButton = document.getElementById('back-button');
+            const createButton = document.getElementById('create-button');
+
+            // Load previously used player name if available
+            const savedName = localStorage.getItem('playerName');
+            if (savedName) {
+                playerNameInput.value = savedName;
+            }
+
+            // Format game code input to uppercase
+            gameCodeInput.addEventListener('input', function () {
+                this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            });
+
+            // Handle form submission
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                // Reset errors
+                codeError.style.display = 'none';
+                nameError.style.display = 'none';
+
+                // Validate input
+                const gameCode = gameCodeInput.value.trim();
+                const playerName = playerNameInput.value.trim();
+
+                let isValid = true;
+
+                if (gameCode.length !== 4) {
+                    codeError.style.display = 'block';
+                    isValid = false;
+                }
+
+                if (playerName.length < 3 || playerName.length > 20) {
+                    nameError.style.display = 'block';
+                    isValid = false;
+                }
+
+                if (!isValid) return;
+
+                // Save player name for future use
+                localStorage.setItem('playerName', playerName);
+
+                // Find game ID by code
+                findGameByCode(gameCode).then(gameId => {
+                    if (gameId) {
+                        // Join the game with the player name
+                        joinGame(gameId, playerName);
+                    } else {
+                        codeError.style.display = 'block';
+                    }
+                });
+            });
+
+            // Back button handler
+            backButton.addEventListener('click', function () {
+                window.location.href = '/';
+            });
+
+            // Create game button handler
+            createButton.addEventListener('click', function () {
+                const playerName = playerNameInput.value.trim() || 'Anonymous Player';
+
+                // Save player name for future use
+                if (playerName !== 'Anonymous Player') {
+                    localStorage.setItem('playerName', playerName);
+                }
+
+                // Create a new game
+                createGame(playerName);
+            });
+
+            // Function to find a game by its code
+            async function findGameByCode(code) {
+                // In a real implementation, you would call an API to find the game by code
+                // For now, we'll simulate by assuming the code is the last 4 characters of the game ID
+
+                // Check localStorage for testing the host view
+                const lastGameCode = localStorage.getItem('lastGameCode');
+                const lastGameId = localStorage.getItem('lastGameId');
+
+                if (lastGameCode === code && lastGameId) {
+                    return lastGameId;
+                }
+
+                // For demo purposes only - in a real app, call an API to find game by code
+                // This is a placeholder that would be replaced with a real implementation
+                try {
+                    const response = await fetch(`/api/findGameByCode/${code}`);
+                    const data = await response.json();
+                    return data.success ? data.gameId : null;
+                } catch (error) {
+                    console.error('Error finding game:', error);
+                    return null;
+                }
+            }
+
+            // Function to join a game
+            function joinGame(gameId, playerName) {
+                fetch('/api/joinGame', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        playerName: playerName,
+                        gameId: gameId
+                    })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Store player ID in localStorage to identify "you" in the player list
+                            localStorage.setItem('currentPlayerId', data.playerId);
+                            window.location.href = `/game-setup?id=${data.gameId}`;
+                        } else {
+                            alert(data.message || 'Failed to join game');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error connecting to server');
+                    });
+            }
+
+            // Function to create a game
+            function createGame(hostName) {
+                fetch('/api/createGame', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        hostName: hostName
+                    })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.href = `/game-setup?id=${data.gameId}`;
+                        } else {
+                            alert(data.message || 'Failed to create game');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error connecting to server');
+                    });
+            }
+        });
+    </script>
+</body>
+
+</html>
