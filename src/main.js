@@ -65,7 +65,44 @@ locar.on("gpsupdate", (pos, distMoved) => {
   }
 });
 
-locar.startGps();
+// locar.startGps();
+let lastPosition = null;
+
+function getDistanceMoved(pos1, pos2) {
+  // Rough distance formula — for small distances
+  const R = 6371000; // Earth radius in meters
+  const toRad = deg => deg * Math.PI / 180;
+  const dLat = toRad(pos2.latitude - pos1.latitude);
+  const dLon = toRad(pos2.longitude - pos1.longitude);
+
+  const lat1 = toRad(pos1.latitude);
+  const lat2 = toRad(pos2.latitude);
+
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+navigator.geolocation.watchPosition(
+  position => {
+    const distMoved = lastPosition
+      ? getDistanceMoved(lastPosition.coords, position.coords)
+      : 0;
+
+    lastPosition = position;
+
+    // Manually trigger LocAR's event
+    locar.emit("gpsupdate", position, distMoved);
+  },
+  err => console.error("Geolocation error:", err),
+  {
+    enableHighAccuracy: true, // ← More accurate!
+    maximumAge: 0,
+    timeout: 5000
+  }
+);
+
 
 document.getElementById("setFakeLoc").addEventListener("click", e => {
   alert("Using fake input GPS, not real GPS location");
