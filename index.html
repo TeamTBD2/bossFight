@@ -8,6 +8,7 @@
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
     <style>
+      /* Keep previous styles */
       body {
         margin: 0;
         overflow: hidden;
@@ -93,6 +94,7 @@
 
       let currentPosition = null;
       let arObjects = [];
+      let initializationTimeout = null;
 
       function checkGeolocation() {
         return "geolocation" in navigator;
@@ -102,25 +104,54 @@
         startScreen.classList.add("hidden");
         arScene.classList.remove("hidden");
         statusInfo.classList.remove("hidden");
-        statusInfo.textContent = "Initializing...";
 
         const camera = document.querySelector("a-camera");
+        let positionReceived = false;
 
+        // Handle GPS camera updates
         camera.addEventListener("gps-camera-update", (ev) => {
+          if (!positionReceived) {
+            positionReceived = true;
+            clearTimeout(initializationTimeout);
+            placeObjectButton.classList.remove("hidden");
+          }
+
           currentPosition = ev.detail.position;
-          statusInfo.textContent = `Location: ${currentPosition.latitude.toFixed(
+          statusInfo.textContent = `Lat: ${currentPosition.latitude.toFixed(
             6
-          )}, 
-                                  ${currentPosition.longitude.toFixed(6)}
-                                  Accuracy: ${ev.detail.accuracy.toFixed(1)}m`;
+          )}\nLon: ${currentPosition.longitude.toFixed(
+            6
+          )}\nAccuracy: ${ev.detail.accuracy.toFixed(1)}m`;
           updateObjectVisibility();
         });
 
-        navigator.geolocation.getCurrentPosition((pos) => {
-          addExampleObjects(pos.coords.latitude, pos.coords.longitude);
-          placeObjectButton.classList.remove("hidden");
+        // Add initialization timeout
+        initializationTimeout = setTimeout(() => {
+          if (!positionReceived) {
+            statusInfo.textContent =
+              "Waiting for GPS signal...\nMake sure you're outdoors with clear sky view";
+          }
+        }, 5000);
+
+        // Add error handling
+        arScene.addEventListener("arjs-error", (ev) => {
+          statusInfo.textContent = `AR Error: ${ev.detail.message}`;
         });
 
+        // Add example objects after slight delay
+        setTimeout(() => {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              addExampleObjects(pos.coords.latitude, pos.coords.longitude);
+            },
+            (err) => {
+              statusInfo.textContent = `GPS Error: ${err.message}`;
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+          );
+        }, 1000);
+
+        // Update visibility on camera movement
         arScene.addEventListener("camera-update-state", updateObjectVisibility);
       }
 
