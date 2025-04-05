@@ -40,10 +40,10 @@ window.addEventListener("resize", () => {
 function addWorldSpaceObjects() {
   // Create boxes at fixed physical distances from the user
   const boxPositions = [
-    { position: new THREE.Vector3(0, 0, -10), color: 0xff0000, label: "10m North" },     // 10m North (forward)
-    { position: new THREE.Vector3(0, 0, 10), color: 0xffff00, label: "10m South" },      // 10m South (behind)
-    { position: new THREE.Vector3(-10, 0, 0), color: 0x00ffff, label: "10m West" },      // 10m West (left)
-    { position: new THREE.Vector3(10, 0, 0), color: 0x00ff00, label: "10m East" }        // 10m East (right)
+    { position: new THREE.Vector3(0, 0, -1), color: 0xff0000, label: "1m North" },     // 10m North (forward)
+    { position: new THREE.Vector3(0, 0, 1), color: 0xffff00, label: "1m South" },      // 10m South (behind)
+    { position: new THREE.Vector3(-1, 0, 0), color: 0x00ffff, label: "1m West" },      // 10m West (left)
+    { position: new THREE.Vector3(1, 0, 0), color: 0x00ff00, label: "1m East" }        // 10m East (right)
   ];
 
   // Create geometry for all boxes
