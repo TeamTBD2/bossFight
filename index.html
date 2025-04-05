@@ -41,8 +41,16 @@
       height: auto;
     }
 
+    .button-wrapper {
+      width: 100%;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
     button {
-      padding: 12px 10px;
+      padding: 0 10px;
       background-color: rgba(255, 255, 255, 0.8);
       border: none;
       border-radius: 5px;
@@ -50,12 +58,9 @@
       cursor: pointer;
       font-size: 14px;
       min-width: 90px;
-      width: auto;
-      height: 44px;
-      max-height: 44px;
+      width: 100%;
+      height: 100%;
       line-height: 1;
-      flex: 0 0 auto;
-      align-self: center;
     }
 
     button:active {
@@ -93,12 +98,24 @@
 <body>
   <div id="overlay">
     <div class="control-panel">
-      <button id="moveLeft">Left</button>
-      <button id="moveForward">Forward</button>
-      <button id="moveRight">Right</button>
-      <button id="moveDown">Down</button>
-      <button id="moveBackward">Back</button>
-      <button id="moveUp">Up</button>
+      <div class="button-wrapper">
+        <button id="moveLeft">Left</button>
+      </div>
+      <div class="button-wrapper">
+        <button id="moveForward">Forward</button>
+      </div>
+      <div class="button-wrapper">
+        <button id="moveRight">Right</button>
+      </div>
+      <div class="button-wrapper">
+        <button id="moveDown">Down</button>
+      </div>
+      <div class="button-wrapper">
+        <button id="moveBackward">Back</button>
+      </div>
+      <div class="button-wrapper">
+        <button id="moveUp">Up</button>
+      </div>
     </div>
   </div>
 
@@ -172,13 +189,6 @@
       renderer.xr.setSession(session);
       arButton.textContent = 'Stop AR';
       arButton.style.display = 'none'; // Hide the AR button when in AR mode
-
-      // Ensure buttons keep their height in AR mode
-      const buttons = document.querySelectorAll('.control-panel button');
-      buttons.forEach(button => {
-        button.style.height = '44px';
-        button.style.maxHeight = '44px';
-      });
     }
 
     // Function called when the AR session ends
