@@ -1,7 +1,13 @@
 import * as THREE from 'three';
 import * as LocAR from 'locar';
 
-// Scene, camera, renderer setup
+// === Shared origin: must be consistent for all clients ===
+const SHARED_ORIGIN = {
+  latitude: 53.4697234,
+  longitude: -2.2340321
+};
+
+// === Scene setup ===
 const camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.001, 1000);
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -12,19 +18,30 @@ const locar = new LocAR.LocationBased(scene, camera);
 const cam = new LocAR.WebcamRenderer(renderer);
 let deviceOrientationControls = new LocAR.DeviceOrientationControls(camera);
 
-// Handle resizing
+// === Resize handler ===
 window.addEventListener("resize", () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
 });
 
-// Track initial location
-let firstLocation = true;
+// === Convert GPS to offset in meters from origin ===
+function gpsOffsetInMeters(origin, target) {
+  const toRad = deg => deg * Math.PI / 180;
+  const R = 6378137; // Earth radius in meters
 
-// Distance helper
+  const dLat = toRad(target.latitude - origin.latitude);
+  const dLon = toRad(target.longitude - origin.longitude);
+
+  const x = dLon * R * Math.cos(toRad((origin.latitude + target.latitude) / 2));
+  const z = dLat * R;
+
+  return { x, z: -z }; // flip Z to make north = forward
+}
+
+// === Distance helper for movement detection ===
 function getDistanceMoved(pos1, pos2) {
-  const R = 6371000; // Earth radius in meters
+  const R = 6371000;
   const toRad = deg => deg * Math.PI / 180;
   const dLat = toRad(pos2.latitude - pos1.latitude);
   const dLon = toRad(pos2.longitude - pos1.longitude);
@@ -37,8 +54,9 @@ function getDistanceMoved(pos1, pos2) {
   return R * c;
 }
 
+// === Start tracking GPS ===
 locar.startGps();
-// Manual GPS using Geolocation API
+
 let lastPosition = null;
 
 navigator.geolocation.watchPosition(
@@ -62,13 +80,19 @@ navigator.geolocation.watchPosition(
   }
 );
 
-// GPS update event handler
+// === GPS update logic ===
+let firstLocation = true;
+
 locar.on("gpsupdate", (pos, distMoved) => {
   if (firstLocation) {
-    alert(`Got the initial location: longitude ${pos.coords.longitude}, latitude ${pos.coords.latitude}`);
+    alert(`Got location: lon ${pos.coords.longitude}, lat ${pos.coords.latitude}`);
 
     const boxProps = [
-      { latDis: 0.000005, lonDis: 0, colour: 0xff0000 }
+      {
+        lat: SHARED_ORIGIN.latitude + 0.000005,
+        lon: SHARED_ORIGIN.longitude,
+        colour: 0xff0000
+      }
     ];
 
     const geom = new THREE.BoxGeometry(0.5, 0.5, 0.5);
@@ -79,22 +103,28 @@ locar.on("gpsupdate", (pos, distMoved) => {
         new THREE.MeshBasicMaterial({ color: box.colour })
       );
 
-      console.log(`Adding box at ${pos.coords.longitude + box.lonDis}, ${pos.coords.latitude + box.latDis}`);
-      // locar.add(mesh, pos.coords.longitude + box.lonDis, pos.coords.latitude + box.latDis);
-      locar.add(mesh, -2.2340321, 53.4697234)
+      // Compute offset from shared origin
+      const offset = gpsOffsetInMeters(SHARED_ORIGIN, {
+        latitude: box.lat,
+        longitude: box.lon
+      });
+
+      mesh.position.set(offset.x, 0, offset.z);
+      scene.add(mesh);
+
+      console.log(`Placing box at offset x: ${offset.x.toFixed(2)} m, z: ${offset.z.toFixed(2)} m`);
     }
 
     firstLocation = false;
   }
 });
 
-// Handle fake GPS location
+// === Fake GPS support ===
 document.getElementById("setFakeLoc").addEventListener("click", () => {
-  alert("Using fake GPS input, not real GPS location.");
+  alert("Using fake GPS input.");
   const fakeLon = parseFloat(document.getElementById("fakeLon").value);
   const fakeLat = parseFloat(document.getElementById("fakeLat").value);
 
-  // Manually emit fake position
   const fakePosition = {
     coords: {
       longitude: fakeLon,
@@ -105,7 +135,7 @@ document.getElementById("setFakeLoc").addEventListener("click", () => {
   locar.emit("gpsupdate", fakePosition, 0);
 });
 
-// Render loop
+// === Render loop ===
 renderer.setAnimationLoop(animate);
 function animate() {
   cam.update();
