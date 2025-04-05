@@ -65,6 +65,39 @@ const deviceOrientationControls = new LocAR.DeviceOrientationControls(camera);
 
 locar.startGps();
 
+const boxProps = [{
+  latDis: 0.0005,
+  lonDis: 0,
+  colour: 0xff0000
+}, {
+  latDis: -0.0005,
+  lonDis: 0,
+  colour: 0xffff00
+}, {
+  latDis: 0,
+  lonDis: -0.0005,
+  colour: 0x00ffff
+}, {
+  latDis: 0,
+  lonDis: 0.0005,
+  colour: 0x00ff00
+}];
+
+const geom = new THREE.BoxGeometry(10, 10, 10);
+
+for (const boxProp of boxProps) {
+  const mesh = new THREE.Mesh(
+    geom,
+    new THREE.MeshBasicMaterial({ color: boxProp.colour })
+  );
+
+  locar.add(
+    mesh,
+    pos.coords.longitude + boxProp.lonDis,
+    pos.coords.latitude + boxProp.latDis
+  );
+}
+
 renderer.setAnimationLoop(animate);
 
 function animate() {
