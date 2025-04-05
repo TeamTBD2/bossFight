@@ -1,77 +1,126 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="utf-8" />
-    <title>AR.js & Three.js Example</title>
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, user-scalable=no"
-    />
-    <!-- Import three.js from CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- Import AR.js (THREEx version) from CDN -->
-    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/three.js/build/ar-threex.js"></script>
-    <!-- Set the base URL for AR.js camera parameters -->
-    <script>
-      THREEx.ArToolkitContext.baseURL =
-        "https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/three.js/";
-    </script>
+    <meta charset="UTF-8" />
+    <title>AR with Three.js – Concept 1: Fixed Object Relative to Camera</title>
     <style>
       body {
         margin: 0;
         overflow: hidden;
       }
+      /* Fullscreen video background */
+      video {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: -1;
+      }
     </style>
   </head>
   <body>
+    <video id="video" autoplay playsinline muted></video>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-      // Initialize renderer
-      var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      // Set up the video background from the rear camera
+      const video = document.getElementById("video");
+      navigator.mediaDevices
+        .getUserMedia({ video: { facingMode: "environment" }, audio: false })
+        .then((stream) => {
+          video.srcObject = stream;
+        })
+        .catch((err) => console.error("Error accessing camera: ", err));
+
+      // Create the Three.js scene and camera
+      const scene = new THREE.Scene();
+      // (We use a PerspectiveCamera even though we update its world position via geolocation.)
+      const camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      scene.add(camera);
+
+      // Create the renderer with a transparent background so the video shows through
+      const renderer = new THREE.WebGLRenderer({
+        alpha: true,
+        antialias: true,
+      });
       renderer.setSize(window.innerWidth, window.innerHeight);
       document.body.appendChild(renderer.domElement);
 
-      // Create a scene and an AR.js camera
-      var scene = new THREE.Scene();
-      var camera = new THREE.Camera();
-      scene.add(camera);
+      // Create a red sphere geometry that will be attached to the camera.
+      // By attaching it as a child of the camera at position (0, 0, -5),
+      // it will always render 5 units in front of the camera.
+      const sphereGeometry = new THREE.SphereGeometry(0.5, 16, 16);
+      const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+      const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+      sphere.position.set(0, 0, -5);
+      camera.add(sphere);
 
-      // Initialize ARToolkitSource using the webcam
-      var arToolkitSource = new THREEx.ArToolkitSource({
-        sourceType: "webcam",
-      });
-      arToolkitSource.init(function onReady() {
-        onResize();
-      });
-      window.addEventListener("resize", onResize);
-      function onResize() {
-        arToolkitSource.onResizeElement();
-        arToolkitSource.copyElementSizeTo(renderer.domElement);
-        if (arToolkitContext.arController !== null) {
-          arToolkitSource.copyElementSizeTo(
-            arToolkitContext.arController.canvas
-          );
-        }
+      // --- Geolocation Setup ---
+      // We use the first geolocation reading as our "origin."
+      let origin = null;
+      let currentPosition = null;
+      // A simple function to convert differences in latitude and longitude to approximate meters.
+      // (1° latitude ~ 111320 m; longitude scaling is adjusted by the cosine of the latitude)
+      function toMeters(latDiff, lonDiff, lat) {
+        const metersPerLat = 111320;
+        const metersPerLon = 111320 * Math.cos((lat * Math.PI) / 180);
+        return { x: lonDiff * metersPerLon, z: latDiff * metersPerLat };
       }
 
-      // Initialize ARToolkitContext using the camera parameters from the CDN.
-      // This avoids 404 errors when loading the file.
-      var arToolkitContext = new THREEx.ArToolkitContext({
-        cameraParametersUrl:
-          "https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/three.js/data/camera_para.dat",
-        detectionMode: "mono",
-      });
-      arToolkitContext.init(function onCompleted() {
-        camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
-      });
+      // Get the initial position (origin)
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          origin = {
+            lat: position.coords.latitude,
+            lon: position.coords.longitude,
+          };
+          currentPosition = origin;
+        },
+        (err) => {
+          console.error("Error getting initial position", err);
+        }
+      );
 
-      // Animation loop
+      // Watch for position changes and update the camera’s world position accordingly.
+      navigator.geolocation.watchPosition(
+        (position) => {
+          currentPosition = {
+            lat: position.coords.latitude,
+            lon: position.coords.longitude,
+          };
+          if (origin) {
+            const latDiff = currentPosition.lat - origin.lat;
+            const lonDiff = currentPosition.lon - origin.lon;
+            const pos = toMeters(latDiff, lonDiff, origin.lat);
+            // Update the camera’s position in the Three.js scene.
+            // (Here we update the x and z coordinates; y could be updated if altitude data is available.)
+            camera.position.set(pos.x, 0, pos.z);
+          }
+        },
+        (err) => {
+          console.error("Error watching position", err);
+        }
+      );
+
+      // Render loop
       function animate() {
         requestAnimationFrame(animate);
-        if (arToolkitSource.ready === false) return;
-        arToolkitContext.update(arToolkitSource.domElement);
         renderer.render(scene, camera);
       }
       animate();
+
+      // Adjust renderer size on window resize
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
     </script>
   </body>
 </html>
