@@ -2,54 +2,20 @@
 <html>
 
 <head>
-  <meta charset="utf-8">
-  <title>WebAR with GPS</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>GeoAR.js demo</title>
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <script src="https://unpkg.com/aframe-look-at-component@1.0.0/dist/aframe-look-at-component.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
 </head>
 
-<body style="margin: 0; overflow: hidden;">
-  <!-- AR.js Container -->
-  <a-scene embedded arjs>
-    <!-- Default marker, change later to GPS-based object -->
-    <a-marker preset="hiro">
-      <a-box position="0 0.5 0" color="red" scale="2 2 2"></a-box>
-    </a-marker>
-    <a-entity camera></a-entity>
+<body>
+  <a-scene vr-mode-ui="enabled: false" arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false;">
+    <a-text value="This content will always face you." look-at="[gps-camera]" scale="120 120 120"
+      gps-entity-place="latitude: 53.4697234; longitude: -2.2340321;"></a-text>
+    <a-camera gps-camera rotation-reader> </a-camera>
   </a-scene>
-
-  <script>
-    // Function to convert GPS to 3D position
-    function gpsTo3D(lat1, lon1, lat2, lon2) {
-      const earthRadius = 6371000; // meters
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLon = (lon2 - lon1) * Math.PI / 180;
-
-      const x = dLon * Math.cos(lat1 * Math.PI / 180) * earthRadius;
-      const z = dLat * earthRadius;
-
-      return { x, z };
-    }
-
-    // Get current position and place object
-    navigator.geolocation.getCurrentPosition(function (position) {
-      const lat = position.coords.latitude;
-      const lon = position.coords.longitude;
-
-      // Target location coordinates (San Francisco example)
-      const targetLat = 37.7749;
-      const targetLon = -122.4194;
-
-      // Convert GPS to 3D coordinates
-      const { x, z } = gpsTo3D(lat, lon, targetLat, targetLon);
-
-      // Create AR object at the calculated position
-      const arObject = document.createElement('a-box');
-      arObject.setAttribute('position', `${x} 1.5 ${z}`);
-      arObject.setAttribute('color', 'blue');
-      document.querySelector('a-scene').appendChild(arObject);
-    });
-  </script>
 </body>
 
 </html>
