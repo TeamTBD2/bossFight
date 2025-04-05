@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>WebXR AR Camera Feed with Geolocation</title>
+  <title>WebXR AR Camera Feed with Given Coordinates</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
@@ -49,6 +49,10 @@
     const light = new THREE.HemisphereLight(0xffffff, 0x444444);
     scene.add(light);
 
+    // Coordinates given by user
+    const lat = 53.4697234; // Latitude
+    const lon = -2.2340321; // Longitude
+
     // Function to convert latitude and longitude to 3D coordinates (basic approximation)
     function convertLatLonTo3D(lat, lon) {
       // Basic simple scaling (this is a naive approach for the example)
@@ -58,21 +62,10 @@
       return { x: x, y: 0, z: z };
     }
 
-    // Get user's current geolocation and set the sphere's position
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(function (position) {
-        const lat = position.coords.latitude;
-        const lon = position.coords.longitude;
-
-        console.log("User's Latitude:", lat, 'Longitude:', lon);
-
-        const { x, y, z } = convertLatLonTo3D(lat, lon);
-        sphere.position.set(x, y, z);  // Set the position in the 3D world
-        scene.add(sphere);
-      });
-    } else {
-      console.log("Geolocation is not supported by this browser.");
-    }
+    // Convert the given coordinates
+    const { x, y, z } = convertLatLonTo3D(lat, lon);
+    sphere.position.set(x, y, z);  // Set the position in the 3D world
+    scene.add(sphere);
 
     function animate() {
       renderer.setAnimationLoop(() => {
