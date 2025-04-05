@@ -1,216 +1,225 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Location-based AR with Manual Ball Placement</title>
-    <!-- Import A-Frame -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
-    <!-- Import AR.js (location-based) from a reliable CDN -->
-    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
-    <!-- Import look-at component -->
-    <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
-    <style>
-      body {
-        margin: 0;
-        overflow: hidden;
-      }
-      .centered {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background-color: rgba(0, 0, 0, 0.7);
-        color: white;
-        padding: 20px;
-        border-radius: 10px;
-        text-align: center;
-        font-family: Arial, sans-serif;
-        z-index: 999;
-      }
-      .hidden {
-        display: none;
-      }
-      #startButton,
-      #placeObjectButton {
-        padding: 10px 20px;
-        background-color: #4caf50;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        font-size: 16px;
-        margin: 10px;
-      }
-      #startButton:hover,
-      #placeObjectButton:hover {
-        background-color: #45a049;
-      }
-      #statusInfo {
-        position: fixed;
-        bottom: 20px;
-        left: 20px;
-        background-color: rgba(0, 0, 0, 0.7);
-        color: white;
-        padding: 10px;
-        border-radius: 5px;
-        font-family: Arial, sans-serif;
-        z-index: 999;
-        max-width: 80%;
-      }
-      /* Fixed positioning for the placement button */
-      #placeObjectButton {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        z-index: 1000;
-      }
-    </style>
-  </head>
-  <body>
-    <!-- Start Screen -->
-    <div id="startScreen" class="centered">
-      <h2>Location-based AR</h2>
-      <p>
-        This app uses your GPS location and camera to place AR objects in the
-        real world.
-      </p>
-      <p>Please allow camera and location access.</p>
-      <button id="startButton">Start AR Experience</button>
-    </div>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AR.js - Place Object at Tapped Location</title>
+  <!-- Import A-Frame -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
+  <!-- Import AR.js (for location-based AR) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ar.js/2.4.0/aframe-ar.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+    .centered {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      font-family: Arial, sans-serif;
+      z-index: 999;
+    }
+    .hidden {
+      display: none;
+    }
+    #startButton, #reloadButton {
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px;
+    }
+    #startButton:hover, #reloadButton:hover {
+      background-color: #45a049;
+    }
+    .error {
+      color: #ff6b6b;
+      margin-top: 15px;
+    }
+    #compatibilityInfo {
+      margin-top: 15px;
+      font-size: 14px;
+    }
+    #checkingCompat {
+      margin-top: 10px;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <!-- Start Screen -->
+  <div id="startScreen" class="centered">
+    <h2>AR Camera Access</h2>
+    <p>This app requires camera access to display AR content.</p>
+    <div id="checkingCompat">Checking device compatibility...</div>
+    <div id="compatibilityInfo" class="hidden"></div>
+    <div id="errorMessage" class="error hidden"></div>
+    <button id="startButton" disabled>Start AR Experience</button>
+    <button id="reloadButton" class="hidden">Reload Page</button>
+  </div>
 
-    <!-- A-Frame Scene -->
-    <a-scene
-      id="arScene"
-      class="hidden"
-      vr-mode-ui="enabled: false"
-      embedded
-      arjs="sourceType: webcam; debugUIEnabled: false;"
-    >
-      <!-- GPS-enabled camera -->
-      <a-camera gps-camera rotation-reader></a-camera>
+  <!-- A-Frame Scene (hidden until AR is started) -->
+  <div id="arScene" class="hidden">
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix;">
+      <!-- Use a gps-camera for location-based positioning -->
+      <a-entity gps-camera rotation-reader></a-entity>
     </a-scene>
+  </div>
 
-    <!-- Status Info and Place Object Button -->
-    <div id="statusInfo" class="hidden">Initializing...</div>
-    <button id="placeObjectButton" class="hidden">Place Ball Here</button>
+  <script>
+    // DOM elements
+    const startButton = document.getElementById('startButton');
+    const reloadButton = document.getElementById('reloadButton');
+    const compatInfo = document.getElementById('compatibilityInfo');
+    const errorMessage = document.getElementById('errorMessage');
+    const checkingCompat = document.getElementById('checkingCompat');
 
-    <script>
-      // Register a custom component to control object visibility based on angle/distance.
-      AFRAME.registerComponent("visibility-check", {
-        tick: function () {
-          const cameraEl = document.querySelector("[gps-camera]");
-          if (!cameraEl) return;
-          const cameraObj = cameraEl.object3D;
-          const objectObj = this.el.object3D;
+    // Check WebRTC availability (needed for camera access)
+    function checkWebRTC() {
+      return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    }
 
-          // Get world positions
-          const camPosition = new THREE.Vector3();
-          cameraObj.getWorldPosition(camPosition);
-          const objPosition = new THREE.Vector3();
-          objectObj.getWorldPosition(objPosition);
+    // Check if running on a mobile device
+    function isMobile() {
+      return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
 
-          // Calculate distance between camera and object
-          const distance = camPosition.distanceTo(objPosition);
+    // Check if the browser supports WebGL (required for AR.js)
+    function checkWebGL() {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      return !!gl;
+    }
 
-          // Always show if within 20 meters
-          if (distance < 20) {
-            this.el.setAttribute("visible", true);
-            return;
-          }
+    // Check browser compatibility
+    function checkBrowserCompatibility() {
+      const isWebRTCSupported = checkWebRTC();
+      const isWebGLSupported = checkWebGL();
+      const isMobileDevice = isMobile();
 
-          // Angle check: show if within a 90° field-of-view
-          const directionToObject = new THREE.Vector3().subVectors(objPosition, camPosition).normalize();
-          const cameraForward = new THREE.Vector3(0, 0, -1).applyQuaternion(cameraObj.quaternion).normalize();
-          const angle = cameraForward.angleTo(directionToObject);
-          const threshold = THREE.MathUtils.degToRad(90); // 90° viewing angle
-          this.el.setAttribute("visible", angle < threshold);
-        },
-      });
+      let compatibilityMessage = '';
+      let isCompatible = true;
 
-      // Function to create and place an AR object (ball) at a fixed GPS location.
-      function createARObject(lat, lng, label, color = "red") {
-        const entity = document.createElement("a-entity");
-        entity.setAttribute("gps-entity-place", `latitude: ${lat}; longitude: ${lng};`);
-        entity.setAttribute("visibility-check", "");
+      if (!isWebRTCSupported) {
+        compatibilityMessage += '❌ Your browser does not support camera access (WebRTC)<br>';
+        isCompatible = false;
+      } else {
+        compatibilityMessage += '✅ Camera access supported<br>';
+      }
 
-        // Create a sphere to represent the ball.
-        const sphere = document.createElement("a-sphere");
-        sphere.setAttribute("radius", "5"); // Adjust size as needed.
-        sphere.setAttribute("color", color);
-        sphere.setAttribute("opacity", "0.9");
-        sphere.setAttribute("material", "shader: flat;");
+      if (!isWebGLSupported) {
+        compatibilityMessage += '❌ Your browser does not support WebGL (required for AR)<br>';
+        isCompatible = false;
+      } else {
+        compatibilityMessage += '✅ WebGL supported<br>';
+      }
 
-        // Create a text label.
-        const textEntity = document.createElement("a-text");
-        textEntity.setAttribute("value", label);
-        textEntity.setAttribute("look-at", "[gps-camera]");
-        textEntity.setAttribute("scale", "5 5 5");
-        textEntity.setAttribute("color", "#ffffff");
-        textEntity.setAttribute("position", "0 7 0");
+      if (!isMobileDevice) {
+        compatibilityMessage += '⚠️ Not detected as a mobile device (AR works best on mobile)<br>';
+      } else {
+        compatibilityMessage += '✅ Mobile device detected<br>';
+      }
 
-        // Add an animation for better visibility.
-        sphere.setAttribute("animation", {
-          property: "scale",
-          to: "1.2 1.2 1.2",
-          dur: 2000,
-          loop: true,
-          easing: "easeInOutQuad",
+      compatInfo.innerHTML = compatibilityMessage;
+      compatInfo.classList.remove('hidden');
+      checkingCompat.classList.add('hidden');
+
+      if (isCompatible) {
+        startButton.disabled = false;
+      } else {
+        errorMessage.textContent = 'Your device or browser may not be compatible with AR.js';
+        errorMessage.classList.remove('hidden');
+        reloadButton.classList.remove('hidden');
+      }
+    }
+
+    // Initialize camera and AR scene
+    function initCamera() {
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        .then(function(stream) {
+          stream.getTracks().forEach(track => track.stop());
+          document.getElementById('startScreen').classList.add('hidden');
+          const arScene = document.getElementById('arScene');
+          arScene.classList.remove('hidden');
+          console.log('AR camera initialized');
+
+          // Once the AR scene is active, add a tap listener to place the object.
+          const sceneEl = document.querySelector('a-scene');
+          sceneEl.addEventListener('click', placeObject);
+        })
+        .catch(function(error) {
+          console.error('Camera access error:', error);
+          errorMessage.textContent = 'Could not access camera: ' + (error.message || 'Permission denied');
+          errorMessage.classList.remove('hidden');
+          reloadButton.classList.remove('hidden');
         });
+    }
 
-        entity.appendChild(sphere);
-        entity.appendChild(textEntity);
-        document.querySelector("a-scene").appendChild(entity);
-        console.log(`Ball placed at: ${lat}, ${lng}`);
-        return entity;
+    // Function to place the object where the user's camera is pointed at when tapped.
+    function placeObject() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+          const currentLat = position.coords.latitude;
+          const currentLng = position.coords.longitude;
+
+          // Get the camera's forward direction from the gps-camera element.
+          const gpsCameraEl = document.querySelector('[gps-camera]');
+          const cameraObj = gpsCameraEl.object3D;
+          const direction = new THREE.Vector3();
+          cameraObj.getWorldDirection(direction);
+          // Compute bearing (in radians) from the camera's forward vector.
+          const bearing = Math.atan2(direction.x, -direction.z);
+          
+          // Define a fixed distance (in meters) at which to place the object.
+          const d = 10;
+          const R = 6378137; // Earth's radius in meters
+          // Compute the offset in degrees using a simple equirectangular approximation.
+          const deltaLat = (d / R) * (180 / Math.PI) * Math.cos(bearing);
+          const deltaLng = (d / (R * Math.cos(currentLat * Math.PI / 180))) * (180 / Math.PI) * Math.sin(bearing);
+          const newLat = currentLat + deltaLat;
+          const newLng = currentLng + deltaLng;
+          console.log("Placing object at:", newLat, newLng);
+
+          // Create (or update) the AR object with the computed GPS coordinates.
+          const sceneEl = document.querySelector('a-scene');
+          let existingObject = document.getElementById('placedObject');
+          if (!existingObject) {
+            const entity = document.createElement('a-sphere');
+            entity.setAttribute('id', 'placedObject');
+            entity.setAttribute('radius', '2');
+            entity.setAttribute('color', 'red');
+            entity.setAttribute('gps-entity-place', `latitude: ${newLat}; longitude: ${newLng};`);
+            sceneEl.appendChild(entity);
+          } else {
+            existingObject.setAttribute('gps-entity-place', `latitude: ${newLat}; longitude: ${newLng};`);
+          }
+        }, function(error) {
+          console.error("Geolocation error:", error);
+        });
+      } else {
+        alert("Geolocation is not supported by your browser.");
       }
+    }
 
-      // Get DOM elements.
-      const startButton = document.getElementById("startButton");
-      const placeObjectButton = document.getElementById("placeObjectButton");
-      const startScreen = document.getElementById("startScreen");
-      const arScene = document.getElementById("arScene");
-      const statusInfo = document.getElementById("statusInfo");
+    // Run compatibility check on page load.
+    window.addEventListener('load', function() {
+      setTimeout(checkBrowserCompatibility, 1000);
+    });
 
-      // Function to initialize the AR camera and scene.
-      function initAR() {
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-          .then(function (stream) {
-            // Stop the test stream.
-            stream.getTracks().forEach(track => track.stop());
-            // Hide the start screen and show the AR scene and UI.
-            startScreen.classList.add("hidden");
-            arScene.classList.remove("hidden");
-            placeObjectButton.classList.remove("hidden");
-            statusInfo.classList.remove("hidden");
-            statusInfo.textContent = "AR initialized. Move around and press 'Place Ball Here' when ready.";
-            console.log("AR camera initialized");
-          })
-          .catch(function (error) {
-            console.error("Camera access error:", error);
-            statusInfo.textContent = "Camera access denied or not available.";
-          });
-      }
-
-      // Start button event.
-      startButton.addEventListener("click", initAR);
-
-      // Place Object button event.
-      placeObjectButton.addEventListener("click", function () {
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(function (position) {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
-            statusInfo.textContent = `Ball placed at: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-            createARObject(lat, lng, "AR Ball", "red");
-          }, function (error) {
-            console.error("Geolocation error:", error);
-            statusInfo.textContent = "Failed to get current location.";
-          });
-        } else {
-          alert("Geolocation is not supported by your browser.");
-        }
-      });
-    </script>
-  </body>
+    startButton.addEventListener('click', initCamera);
+    reloadButton.addEventListener('click', function() {
+      location.reload();
+    });
+  </script>
+</body>
 </html>
