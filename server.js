@@ -69,9 +69,11 @@ io.on('connection', (socket) => {
         players: activeGames[gameId].players.map(p => ({
           id: p.id,
           name: p.name,
-          isHost: p.isHost || false
+          isHost: p.isHost || false,
+          isReady: p.isReady || false,
+          isDead: p.isDead || false
         })),
-        maxPlayers: activeGames[gameId].maxPlayers,
+        bossHealth: activeGames[gameId].bossHealth || 0,
         createdAt: activeGames[gameId].createdAt
       });
     } else {
@@ -95,12 +97,6 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Check if game is full
-    if (activeGames[gameId].players.length >= activeGames[gameId].maxPlayers) {
-      socket.emit('joinError', { message: 'This game is full. Please join another game.' });
-      return;
-    }
-
     // Add player to the game
     const normalizedPlayerName = playerName || 'Guest_' + Math.floor(Math.random() * 1000);
     const playerId = uuidv4();
@@ -110,7 +106,9 @@ io.on('connection', (socket) => {
       socketId: socket.id,
       name: normalizedPlayerName,
       isHost: false,
-      joinedAt: new Date()
+      joinedAt: new Date(),
+      isReady: false,
+      isDead: false
     });
 
     // Update the player socket map
@@ -132,7 +130,9 @@ io.on('connection', (socket) => {
       players: activeGames[gameId].players.map(p => ({
         id: p.id,
         name: p.name,
-        isHost: p.isHost || false
+        isHost: p.isHost || false,
+        isReady: p.isReady || false,
+        isDead: p.isDead || false
       }))
     });
 
@@ -158,13 +158,14 @@ io.on('connection', (socket) => {
         socketId: socket.id,
         name: normalizedHostName
       },
-      status: 'setup', // setup, active, finished
+      status: 'setup', // setup, calibration, active, finished
       players: [], // Will include the host and other players
-      maxPlayers: 4, // Default max players
       settings: {
         timeLimit: 600, // 10 minutes in seconds
         private: false
-      }
+      },
+      bossHealth: 0, // Will be set when the game starts
+      gameTimers: {} // To store interval IDs for game mechanics
     };
 
     // Add host as first player
@@ -173,7 +174,9 @@ io.on('connection', (socket) => {
       socketId: socket.id,
       name: normalizedHostName,
       isHost: true,
-      joinedAt: new Date()
+      joinedAt: new Date(),
+      isReady: false,
+      isDead: false
     });
 
     // Update the player socket map
@@ -212,9 +215,11 @@ io.on('connection', (socket) => {
       players: activeGames[gameId].players.map(p => ({
         id: p.id,
         name: p.name,
-        isHost: p.isHost || false
+        isHost: p.isHost || false,
+        isReady: p.isReady || false,
+        isDead: p.isDead || false
       })),
-      maxPlayers: activeGames[gameId].maxPlayers,
+      bossHealth: activeGames[gameId].bossHealth || 0,
       createdAt: activeGames[gameId].createdAt
     });
   });
@@ -240,7 +245,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Listen for start game requests
+  // Listen for start game requests (begins calibration phase)
   socket.on('startGame', ({ gameId }) => {
     if (!activeGames[gameId]) {
       socket.emit('startGameError', { message: 'Game not found' });
@@ -254,13 +259,109 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Update game status
-    activeGames[gameId].status = 'active';
+    // Update game status to calibration phase
+    activeGames[gameId].status = 'calibration';
 
-    // Notify all players that the game has started
-    io.to(gameId).emit('gameStarted', { gameId: gameId });
+    // Initialize boss health based on player count
+    activeGames[gameId].bossHealth = activeGames[gameId].players.length * 30;
 
-    console.log(`Game ${gameId} started by host ${hostPlayer.name}`);
+    // Notify all players to go to calibration page
+    io.to(gameId).emit('goToCalibrationPage', { gameId: gameId });
+
+    console.log(`Game ${gameId} entered calibration phase by host ${hostPlayer.name}`);
+  });
+
+  // Player is ready after calibration
+  socket.on('playerReady', ({ gameId, playerId }) => {
+    if (!activeGames[gameId] || activeGames[gameId].status !== 'calibration') {
+      socket.emit('readyError', { message: 'Game not found or not in calibration phase' });
+      return;
+    }
+
+    // Find the player
+    const playerIndex = activeGames[gameId].players.findIndex(p => p.id === playerId);
+    if (playerIndex === -1) {
+      socket.emit('readyError', { message: 'Player not found in this game' });
+      return;
+    }
+
+    // Mark the player as ready
+    activeGames[gameId].players[playerIndex].isReady = true;
+    
+    // Broadcast that this player is ready
+    io.to(gameId).emit('playerIsReady', { 
+      playerId: playerId
+    });
+    
+    // Check if all players are ready
+    const allReady = activeGames[gameId].players.every(p => p.isReady);
+    if (allReady) {
+      // If all players are ready, start the actual game
+      startActualGame(gameId);
+    }
+    
+    console.log(`Player ${playerId} is ready in game ${gameId}`);
+  });
+
+  // Handle player attacks
+  socket.on('playerAttack', ({ gameId, playerId, hit }) => {
+    if (!activeGames[gameId] || activeGames[gameId].status !== 'active') {
+      return;
+    }
+
+    // Find the player
+    const player = activeGames[gameId].players.find(p => p.id === playerId);
+    if (!player || player.isDead) {
+      return;
+    }
+
+    // Broadcast the attack to all players
+    io.to(gameId).emit('playerAttacked', {
+      playerId: playerId,
+      hit: hit
+    });
+
+    // If the attack hit, reduce boss health
+    if (hit) {
+      activeGames[gameId].bossHealth -= 1;
+      
+      // Broadcast updated boss health
+      io.to(gameId).emit('bossHealthUpdated', {
+        health: activeGames[gameId].bossHealth
+      });
+      
+      // Check if boss is defeated
+      if (activeGames[gameId].bossHealth <= 0) {
+        endGame(gameId, true); // Players win
+      }
+    }
+  });
+
+  // Handle player death notification
+  socket.on('playerDied', ({ gameId, playerId }) => {
+    if (!activeGames[gameId] || activeGames[gameId].status !== 'active') {
+      return;
+    }
+
+    // Find the player
+    const playerIndex = activeGames[gameId].players.findIndex(p => p.id === playerId);
+    if (playerIndex === -1) {
+      return;
+    }
+
+    // Mark player as dead on the server
+    activeGames[gameId].players[playerIndex].isDead = true;
+    
+    // Broadcast to all clients that this player has died
+    io.to(gameId).emit('playerDied', {
+      playerId: playerId
+    });
+    
+    // Check if all players are dead
+    const allPlayersDead = activeGames[gameId].players.every(p => p.isDead || p.disconnected);
+    if (allPlayersDead) {
+      endGame(gameId, false); // Dragon wins
+    }
   });
 
   // Handle disconnections
@@ -319,9 +420,19 @@ io.on('connection', (socket) => {
                 players: activeGames[gameId].players.map(p => ({
                   id: p.id,
                   name: p.name,
-                  isHost: p.isHost || false
+                  isHost: p.isHost || false,
+                  isReady: p.isReady || false,
+                  isDead: p.isDead || false
                 }))
               });
+
+              // If in active game, check if all players are dead or disconnected
+              if (activeGames[gameId].status === 'active') {
+                const allPlayersDead = activeGames[gameId].players.every(p => p.isDead || p.disconnected);
+                if (allPlayersDead) {
+                  endGame(gameId, false); // Dragon wins
+                }
+              }
             }
           }
         }, 60000); // Wait 1 minute for reconnection
@@ -329,6 +440,113 @@ io.on('connection', (socket) => {
     }
   });
 });
+
+// Helper function to start the actual game after calibration
+function startActualGame(gameId) {
+  if (!activeGames[gameId]) return;
+  
+  // Update game status
+  activeGames[gameId].status = 'active';
+  
+  // Reset player readiness for game mechanics
+  activeGames[gameId].players.forEach(player => {
+    player.isReady = false;
+  });
+  
+  // Notify all players that the game has started
+  io.to(gameId).emit('gameStarted', {
+    gameId: gameId,
+    bossHealth: activeGames[gameId].bossHealth,
+    players: activeGames[gameId].players.map(p => ({
+      id: p.id,
+      name: p.name,
+      isDead: p.isDead || false
+    }))
+  });
+  
+  // Start dragon attack timer (every 10 seconds)
+  activeGames[gameId].gameTimers.dragonAttack = setInterval(() => {
+    dragonAttack(gameId);
+  }, 10000);
+  
+  // Set game end timer (90 seconds)
+  activeGames[gameId].gameTimers.gameEnd = setTimeout(() => {
+    // If time runs out, dragon wins
+    endGame(gameId, false);
+  }, 90000);
+  
+  console.log(`Game ${gameId} fully started, dragon will attack every 10 seconds, game will end in 90 seconds`);
+}
+
+// Dragon attack function
+function dragonAttack(gameId) {
+  if (!activeGames[gameId] || activeGames[gameId].status !== 'active') return;
+  
+  const game = activeGames[gameId];
+  const activePlayers = game.players.filter(p => !p.isDead && !p.disconnected);
+  
+  // If no active players, end the game
+  if (activePlayers.length === 0) {
+    endGame(gameId, false);
+    return;
+  }
+  
+  // Select up to 5 random players to attack
+  const targetCount = Math.min(5, activePlayers.length);
+  const targetPlayers = [];
+  
+  // Fisher-Yates shuffle for random selection
+  const shuffled = [...activePlayers];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  
+  // Take the first 'targetCount' players
+  for (let i = 0; i < targetCount; i++) {
+    targetPlayers.push(shuffled[i].id);
+  }
+  
+  // Notify all players about the dragon attack - just send IDs of attacked players
+  io.to(gameId).emit('dragonAttacked', {
+    targetPlayerIds: targetPlayers
+  });
+  
+  console.log(`Dragon attacked in game ${gameId}, targeting ${targetPlayers.length} players`);
+}
+
+// End game function
+function endGame(gameId, playersWin) {
+  if (!activeGames[gameId]) return;
+  
+  // Clear all timers
+  clearInterval(activeGames[gameId].gameTimers.dragonAttack);
+  clearTimeout(activeGames[gameId].gameTimers.gameEnd);
+  
+  // Update game status
+  activeGames[gameId].status = 'finished';
+  
+  // Notify all players about game end
+  io.to(gameId).emit('gameEnded', {
+    playersWin: playersWin,
+    players: activeGames[gameId].players.map(p => ({
+      id: p.id,
+      name: p.name,
+      isDead: p.isDead || false
+    })),
+    bossHealth: activeGames[gameId].bossHealth
+  });
+  
+  console.log(`Game ${gameId} ended, players ${playersWin ? 'won' : 'lost'}`);
+  
+  // Keep the game data for some time before cleaning up
+  setTimeout(() => {
+    if (activeGames[gameId]) {
+      delete activeGames[gameId];
+      console.log(`Game ${gameId} data removed after end`);
+    }
+  }, 300000); // Clean up after 5 minutes
+}
 
 // Legacy REST endpoints (kept for backward compatibility)
 // API endpoint to join a game
@@ -351,14 +569,6 @@ app.post('/api/joinGame', (req, res) => {
     });
   }
 
-  // Check if game is full
-  if (activeGames[gameId].players.length >= activeGames[gameId].maxPlayers) {
-    return res.json({
-      success: false,
-      message: 'This game is full. Please join another game.'
-    });
-  }
-
   // Add player to the game
   const normalizedPlayerName = playerName || 'Guest_' + Math.floor(Math.random() * 1000);
   const playerId = uuidv4();
@@ -367,7 +577,9 @@ app.post('/api/joinGame', (req, res) => {
     id: playerId,
     name: normalizedPlayerName,
     isHost: false,
-    joinedAt: new Date()
+    joinedAt: new Date(),
+    isReady: false,
+    isDead: false
   });
 
   return res.json({
@@ -382,35 +594,40 @@ app.post('/api/joinGame', (req, res) => {
 app.post('/api/createGame', (req, res) => {
   const gameId = uuidv4();
   const hostName = req.body.hostName || 'Anonymous Host';
+  const hostId = uuidv4();
 
   // Create a new game instance
   activeGames[gameId] = {
     id: gameId,
     createdAt: new Date(),
     host: {
-      id: uuidv4(),
+      id: hostId,
       name: hostName
     },
-    status: 'setup', // setup, active, finished
+    status: 'setup', // setup, calibration, active, finished
     players: [], // Will include the host and other players
-    maxPlayers: 4, // Default max players
     settings: {
       timeLimit: 600, // 10 minutes in seconds
       private: false
-    }
+    },
+    bossHealth: 0, // Will be set when the game starts
+    gameTimers: {} // To store interval IDs for game mechanics
   };
 
   // Add host as first player
   activeGames[gameId].players.push({
-    id: activeGames[gameId].host.id,
+    id: hostId,
     name: hostName,
     isHost: true,
-    joinedAt: new Date()
+    joinedAt: new Date(),
+    isReady: false,
+    isDead: false
   });
 
   return res.json({
     success: true,
     gameId: gameId,
+    playerId: hostId,
     message: 'Game created successfully'
   });
 });
@@ -435,9 +652,11 @@ app.get('/api/game/:gameId', (req, res) => {
       players: activeGames[gameId].players.map(p => ({
         id: p.id,
         name: p.name,
-        isHost: p.isHost || false
+        isHost: p.isHost || false,
+        isReady: p.isReady || false,
+        isDead: p.isDead || false
       })),
-      maxPlayers: activeGames[gameId].maxPlayers,
+      bossHealth: activeGames[gameId].bossHealth || 0,
       createdAt: activeGames[gameId].createdAt
     }
   });
@@ -481,6 +700,16 @@ app.get('/game-lobby', (req, res) => {
 // Serve game setup
 app.get('/game-setup', (req, res) => {
   res.sendFile(join(__dirname, 'public', 'game-setup.html'));
+});
+
+// Serve game calibration page
+app.get('/game-calibration', (req, res) => {
+  res.sendFile(join(__dirname, 'public', 'game-calibration.html'));
+});
+
+// Serve game play page
+app.get('/game-play', (req, res) => {
+  res.sendFile(join(__dirname, 'public', 'game-play.html'));
 });
 
 // Start the server
