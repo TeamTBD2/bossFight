@@ -4,11 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fixed AR Object Placement</title>
-    <!-- Import A-Frame -->
+    <!-- Import A-Frame and AR.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
-    <!-- Import AR.js with location-based features -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ar.js/2.4.0/aframe-ar.min.js"></script>
-    <!-- AR.js look-at component -->
     <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
     <style>
@@ -74,52 +72,74 @@
       }
     </style>
   </head>
+
   <body>
     <div id="startScreen" class="centered">
       <h2>Fixed AR Objects</h2>
       <p>This app places AR objects fixed at their GPS coordinates.</p>
-      <p>You'll need to allow location and camera access.</p>
+      <p>Allow location and camera access.</p>
       <button id="startButton">Start AR Experience</button>
     </div>
+
     <a-scene
       id="arScene"
       class="hidden"
       vr-mode-ui="enabled: false"
       embedded
-      arjs="sourceType: webcam; debugUIEnabled: false; 
+      arjs="sourceType: webcam; debugUIEnabled: false;
             sourceWidth: 1280; sourceHeight: 960;
             displayWidth: 1280; displayHeight: 960;"
     >
-      <!-- The camera with gps-camera -->
-      <a-camera gps-camera rotation-reader position="0 0 0"></a-camera>
-      <!-- Container for AR objects -->
+      <!-- Remove simulated coordinates from the markup -->
+      <a-camera
+        id="arCamera"
+        gps-camera
+        rotation-reader
+        position="0 0 0"
+      ></a-camera>
       <a-entity id="world-container"></a-entity>
     </a-scene>
+
     <div id="statusInfo" class="hidden">Initializing...</div>
     <button id="placeObjectButton" class="hidden">Place Object Here</button>
+
     <script>
-      // DOM elements
-      const startButton = document.getElementById("startButton");
-      const arScene = document.getElementById("arScene");
-      const statusInfo = document.getElementById("statusInfo");
-      const startScreen = document.getElementById("startScreen");
-      const placeObjectButton = document.getElementById("placeObjectButton");
-      const worldContainer = document.getElementById("world-container");
-
-      // Variables for current position and origin
+      // Global variables
       let currentLat = 0,
-        currentLng = 0;
-      let originLat = 0,
+        currentLng = 0,
+        originSet = false,
+        originLat = 0,
         originLng = 0,
-        originSet = false;
+        currentHeading = 0; // Compass heading in degrees
 
-      // Compute destination point (lat/lng) given a start point, bearing (degrees), and distance (meters)
+      // Listen for device orientation (compass heading)
+      window.addEventListener(
+        "deviceorientationabsolute",
+        (event) => {
+          if (event.alpha !== null) {
+            currentHeading = event.alpha;
+          }
+        },
+        true
+      );
+      // Fallback if 'deviceorientationabsolute' isn't available
+      window.addEventListener(
+        "deviceorientation",
+        (event) => {
+          if (event.alpha !== null) {
+            currentHeading = event.alpha;
+          }
+        },
+        true
+      );
+
+      // Compute destination point given a start (lat, lng), bearing (degrees), and distance (meters)
       function computeDestinationPoint(lat, lng, bearing, distance) {
         const R = 6378137; // Earth's radius in meters
         const rad = Math.PI / 180;
-        const lat1 = lat * rad,
-          lng1 = lng * rad,
-          brng = bearing * rad;
+        const lat1 = lat * rad;
+        const lng1 = lng * rad;
+        const brng = bearing * rad;
         const dDivR = distance / R;
         const lat2 = Math.asin(
           Math.sin(lat1) * Math.cos(dDivR) +
@@ -139,7 +159,7 @@
         return "geolocation" in navigator;
       }
 
-      // Get the current GPS position
+      // Get the current position
       function getCurrentPosition() {
         return new Promise((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(
@@ -159,48 +179,60 @@
         });
       }
 
-      // Initialize AR experience
+      // Initialize AR: remove simulation parameters and start tracking real position
       function initAR() {
-        startScreen.classList.add("hidden");
-        arScene.classList.remove("hidden");
-        statusInfo.classList.remove("hidden");
-        statusInfo.textContent = "Getting your location...";
+        document.getElementById("startScreen").classList.add("hidden");
+        document.getElementById("arScene").classList.remove("hidden");
+        document.getElementById("statusInfo").classList.remove("hidden");
+        document.getElementById("statusInfo").textContent =
+          "Getting your location...";
 
         getCurrentPosition()
           .then((position) => {
-            statusInfo.textContent = `Location: ${position.coords.latitude.toFixed(
+            document.getElementById(
+              "statusInfo"
+            ).textContent = `Location: ${position.coords.latitude.toFixed(
               6
             )}, ${position.coords.longitude.toFixed(6)}`;
-            // Update camera position for AR.js
-            document.querySelector("a-camera").setAttribute("gps-camera", {
-              simulateLatitude: position.coords.latitude,
-              simulateLongitude: position.coords.longitude,
+
+            const camera = document.getElementById("arCamera");
+            // Update gps-camera with real coordinates (no simulation parameters)
+            camera.setAttribute("gps-camera", {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
             });
-            // (Optional) You could add fixed objects here based on the origin if desired
-            placeObjectButton.classList.remove("hidden");
+
+            // If you don't want the pre-placed objects, comment out the next line.
+            // addWorldSpaceObjects();
+
+            document
+              .getElementById("placeObjectButton")
+              .classList.remove("hidden");
             watchPosition();
           })
           .catch((error) => {
-            statusInfo.textContent = `Error: ${error.message}`;
+            document.getElementById(
+              "statusInfo"
+            ).textContent = `Error: ${error.message}`;
             console.error("Error getting location:", error);
           });
       }
 
-      // Create an AR object at fixed GPS coordinates
+      // Create an AR object fixed at the given GPS coordinates
       function createFixedObjectAtGPS(lat, lng, label, color = "red") {
         const entity = document.createElement("a-entity");
-        // Set the fixed GPS coordinate only once at creation
         entity.setAttribute(
           "gps-entity-place",
           `latitude: ${lat}; longitude: ${lng};`
         );
 
-        // Visual marker (a sphere) and label (a-text)
+        // Visual marker (a sphere)
         const sphere = document.createElement("a-sphere");
         sphere.setAttribute("radius", "0.5");
         sphere.setAttribute("color", color);
         sphere.setAttribute("opacity", "0.8");
 
+        // Label (a-text)
         const textEntity = document.createElement("a-text");
         textEntity.setAttribute("value", label);
         textEntity.setAttribute("look-at", "[gps-camera]");
@@ -211,24 +243,20 @@
 
         entity.appendChild(sphere);
         entity.appendChild(textEntity);
-        worldContainer.appendChild(entity);
-        console.log(
-          `Placed object at GPS (${lat}, ${lng}) with label "${label}"`
-        );
+        document.getElementById("world-container").appendChild(entity);
+        console.log(`Placed object at (${lat}, ${lng}) with label "${label}"`);
       }
 
-      // Place a new object fixed in the world when the button is clicked.
-      // The GPS coordinate is computed once based on your current position and the camera's heading.
+      // Called when the user taps the "Place Object Here" button.
+      // Uses the current GPS coordinates and the device's compass heading (currentHeading)
+      // to compute a destination 3 meters away.
       function placeObjectInWorldSpace() {
         const colors = ["red", "blue", "green", "yellow", "purple", "orange"];
         const randomColor = colors[Math.floor(Math.random() * colors.length)];
+        const distance = 3; // meters
 
-        const camera = document.querySelector("a-camera");
-        const cameraRotation = camera.getAttribute("rotation");
-        const distance = 3; // Place object 3 meters ahead
-        const bearing = cameraRotation.y; // Use camera's heading as bearing
-
-        // Compute the destination GPS coordinate for the object
+        // Use the compass heading instead of camera rotation
+        const bearing = currentHeading;
         const dest = computeDestinationPoint(
           currentLat,
           currentLng,
@@ -237,27 +265,31 @@
         );
         const timestamp = new Date().toLocaleTimeString();
 
-        // Create the object once—its GPS coordinate is fixed.
         createFixedObjectAtGPS(
           dest.latitude,
           dest.longitude,
           `Placed at ${timestamp}`,
           randomColor
         );
-        statusInfo.textContent = `Object placed 3m ahead at ${timestamp}`;
+        document.getElementById(
+          "statusInfo"
+        ).textContent = `Object placed 3m ahead at ${timestamp}`;
       }
 
-      // Update camera position based on geolocation (used by AR.js to reposition objects relative to you)
+      // Update the camera's position as it moves
       function watchPosition() {
         navigator.geolocation.watchPosition(
           (position) => {
             currentLat = position.coords.latitude;
             currentLng = position.coords.longitude;
-            document.querySelector("a-camera").setAttribute("gps-camera", {
-              simulateLatitude: currentLat,
-              simulateLongitude: currentLng,
+            const camera = document.getElementById("arCamera");
+            camera.setAttribute("gps-camera", {
+              latitude: currentLat,
+              longitude: currentLng,
             });
-            statusInfo.textContent = `Location: ${currentLat.toFixed(
+            document.getElementById(
+              "statusInfo"
+            ).textContent = `Location: ${currentLat.toFixed(
               6
             )}, ${currentLng.toFixed(
               6
@@ -265,25 +297,30 @@
           },
           (error) => {
             console.error("Error watching position:", error);
-            statusInfo.textContent = `Tracking error: ${error.message}`;
+            document.getElementById(
+              "statusInfo"
+            ).textContent = `Tracking error: ${error.message}`;
           },
           { enableHighAccuracy: true, maximumAge: 0, timeout: 27000 }
         );
       }
 
       // Event listeners
-      startButton.addEventListener("click", () => {
+      document.getElementById("startButton").addEventListener("click", () => {
         if (!checkGeolocation()) {
-          statusInfo.classList.remove("hidden");
-          statusInfo.textContent =
+          document.getElementById("statusInfo").classList.remove("hidden");
+          document.getElementById("statusInfo").textContent =
             "Geolocation is not supported by your browser";
           return;
         }
         initAR();
       });
-      placeObjectButton.addEventListener("click", placeObjectInWorldSpace);
 
-      // Handle orientation changes for AR.js updates
+      document
+        .getElementById("placeObjectButton")
+        .addEventListener("click", placeObjectInWorldSpace);
+
+      // Handle orientation changes for AR.js layout updates
       window.addEventListener("orientationchange", () => {
         setTimeout(() => {
           const arjsSystem = document.querySelector("a-scene").systems["arjs"];
