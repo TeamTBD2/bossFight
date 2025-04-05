@@ -1,67 +1,205 @@
-import * as THREE from 'three';
-import * as LocAR from 'locar';
+class ARButton {
 
-const camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.001, 1000);
+  static createButton(renderer, sessionInit = {}) {
 
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
+    const button = document.createElement('button');
 
-const scene = new THREE.Scene();
+    function showStartAR( /*device*/) {
 
-const locar = new LocAR.LocationBased(scene, camera);
+      if (sessionInit.domOverlay === undefined) {
 
-window.addEventListener("resize", e => {
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-});
+        const overlay = document.createElement('div');
+        overlay.style.display = 'none';
+        document.body.appendChild(overlay);
 
-const cam = new LocAR.WebcamRenderer(renderer);
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('width', 38);
+        svg.setAttribute('height', 38);
+        svg.style.position = 'absolute';
+        svg.style.right = '20px';
+        svg.style.top = '20px';
+        svg.addEventListener('click', function () {
 
-let firstLocation = true;
+          currentSession.end();
 
-let deviceOrientationControls = new LocAR.DeviceOrientationControls(camera);
+        });
+        overlay.appendChild(svg);
 
-locar.on("gpsupdate", (pos, distMoved) => {
-  if (firstLocation) {
-    alert(`Got the initial location: longitude ${pos.coords.longitude}, latitude ${pos.coords.latitude}`);
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', 'M 12,12 L 28,28 M 28,12 12,28');
+        path.setAttribute('stroke', '#fff');
+        path.setAttribute('stroke-width', 2);
+        svg.appendChild(path);
 
-    const boxProps = [{
-      colour: 0xff0000
-    }];
+        if (sessionInit.optionalFeatures === undefined) {
 
-    const geom = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+          sessionInit.optionalFeatures = [];
 
-    for (const boxProp of boxProps) {
-      const mesh = new THREE.Mesh(
-        geom,
-        new THREE.MeshBasicMaterial({ color: boxProp.colour })
-      );
+        }
 
-      console.log(`adding at ${pos.coords.longitude + boxProp.lonDis},${pos.coords.latitude + boxProp.latDis}`);
-      locar.add(mesh, -2.2340321, 53.4697234);
+        sessionInit.optionalFeatures.push('dom-overlay');
+        sessionInit.domOverlay = { root: overlay };
+
+      }
+
+      //
+
+      let currentSession = null;
+
+      async function onSessionStarted(session) {
+
+        session.addEventListener('end', onSessionEnded);
+
+        renderer.xr.setReferenceSpaceType('local');
+
+        await renderer.xr.setSession(session);
+
+        button.textContent = 'STOP AR';
+        sessionInit.domOverlay.root.style.display = '';
+
+        currentSession = session;
+
+      }
+
+      function onSessionEnded( /*event*/) {
+
+        currentSession.removeEventListener('end', onSessionEnded);
+
+        button.textContent = 'START AR';
+        sessionInit.domOverlay.root.style.display = 'none';
+
+        currentSession = null;
+
+      }
+
+      //
+
+      button.style.display = '';
+
+      button.style.cursor = 'pointer';
+      button.style.left = 'calc(50% - 50px)';
+      button.style.width = '100px';
+
+      button.textContent = 'START AR';
+
+      button.onmouseenter = function () {
+
+        button.style.opacity = '1.0';
+
+      };
+
+      button.onmouseleave = function () {
+
+        button.style.opacity = '0.5';
+
+      };
+
+      button.onclick = function () {
+
+        if (currentSession === null) {
+
+          navigator.xr.requestSession('immersive-ar', sessionInit).then(onSessionStarted);
+
+        } else {
+
+          currentSession.end();
+
+        }
+
+      };
+
     }
 
-    firstLocation = false;
+    function disableButton() {
+
+      button.style.display = '';
+
+      button.style.cursor = 'auto';
+      button.style.left = 'calc(50% - 75px)';
+      button.style.width = '150px';
+
+      button.onmouseenter = null;
+      button.onmouseleave = null;
+
+      button.onclick = null;
+
+    }
+
+    function showARNotSupported() {
+
+      disableButton();
+
+      button.textContent = 'AR NOT SUPPORTED';
+
+    }
+
+    function showARNotAllowed(exception) {
+
+      disableButton();
+
+      console.warn('Exception when trying to call xr.isSessionSupported', exception);
+
+      button.textContent = 'AR NOT ALLOWED';
+
+    }
+
+    function stylizeElement(element) {
+
+      element.style.position = 'absolute';
+      element.style.bottom = '20px';
+      element.style.padding = '12px 6px';
+      element.style.border = '1px solid #fff';
+      element.style.borderRadius = '4px';
+      element.style.background = 'rgba(0,0,0,0.1)';
+      element.style.color = '#fff';
+      element.style.font = 'normal 13px sans-serif';
+      element.style.textAlign = 'center';
+      element.style.opacity = '0.5';
+      element.style.outline = 'none';
+      element.style.zIndex = '999';
+
+    }
+
+    if ('xr' in navigator) {
+
+      button.id = 'ARButton';
+      button.style.display = 'none';
+
+      stylizeElement(button);
+
+      // Force AR to try starting anyway, skipping isSessionSupported check
+      showStartAR();
+
+      return button;
+
+    } else {
+
+      const message = document.createElement('a');
+
+      if (window.isSecureContext === false) {
+
+        message.href = document.location.href.replace(/^http:/, 'https:');
+        message.innerHTML = 'WEBXR NEEDS HTTPS'; // TODO Improve message
+
+      } else {
+
+        message.href = 'https://immersiveweb.dev/';
+        message.innerHTML = 'WEBXR NOT AVAILABLE';
+
+      }
+
+      message.style.left = 'calc(50% - 90px)';
+      message.style.width = '180px';
+      message.style.textDecoration = 'none';
+
+      stylizeElement(message);
+
+      return message;
+
+    }
+
   }
-});
 
-locar.startGps();
-
-document.getElementById("setFakeLoc").addEventListener("click", e => {
-  alert("Using fake input GPS, not real GPS location");
-  locar.stopGps();
-  locar.fakeGps(
-    parseFloat(document.getElementById("fakeLon").value),
-    parseFloat(document.getElementById("fakeLat").value)
-  );
-});
-
-renderer.setAnimationLoop(animate);
-
-function animate() {
-  cam.update();
-  deviceOrientationControls?.update();
-  renderer.render(scene, camera);
 }
+
+export { ARButton };
