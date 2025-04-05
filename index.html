@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>WebXR AR Camera Feed with Given Coordinates</title>
+  <title>WebXR AR Camera Feed</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
@@ -45,27 +45,12 @@
     const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
     const sphere = new THREE.Mesh(geometry, material);
 
+    sphere.position.set(0, 0, -0.5); // half a meter in front of the camera
+    scene.add(sphere);
+
     // Lighting
     const light = new THREE.HemisphereLight(0xffffff, 0x444444);
     scene.add(light);
-
-    // Coordinates given by user
-    const lat = 53.4697234; // Latitude
-    const lon = -2.2340321; // Longitude
-
-    // Function to convert latitude and longitude to 3D coordinates (basic approximation)
-    function convertLatLonTo3D(lat, lon) {
-      // Basic simple scaling (this is a naive approach for the example)
-      const scale = 100000; // Scaling factor to map lat/lon to 3D space
-      const x = lon * scale;  // Convert longitude to X coordinate
-      const z = lat * scale;  // Convert latitude to Z coordinate
-      return { x: x, y: 0, z: z };
-    }
-
-    // Convert the given coordinates
-    const { x, y, z } = convertLatLonTo3D(lat, lon);
-    sphere.position.set(x, y, z);  // Set the position in the 3D world
-    scene.add(sphere);
 
     function animate() {
       renderer.setAnimationLoop(() => {
