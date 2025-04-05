@@ -1,3 +1,157 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>WebXR AR with GPS Sphere</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+    }
+
+    #overlay {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 10;
+      background-color: rgba(0, 0, 0, 0.5);
+      padding: 10px;
+      border-radius: 8px;
+      color: white;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="overlay">Locating...</div>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
+  <script>
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera();
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.xr.enabled = true;
+    document.body.appendChild(renderer.domElement);
+
+    const overlay = document.getElementById('overlay');
+
+    const arButton = document.createElement('button');
+    arButton.style.position = 'absolute';
+    arButton.style.top = '20px';
+    arButton.style.right = '20px';
+    arButton.style.zIndex = '10';
+    arButton.style.backgroundColor = '#2980b9';
+    arButton.style.color = 'white';
+    arButton.style.border = 'none';
+    arButton.style.padding = '10px';
+    arButton.style.borderRadius = '4px';
+    arButton.textContent = 'Start AR';
+    document.body.appendChild(arButton);
+
+    // Convert lat/lon difference to meters
+    function geoToMeters(lat1, lon1, lat2, lon2) {
+      const R = 6371000; // Earth radius in meters
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const distance = R * c;
+
+      // Approximate direction in meters
+      const x = R * dLon * Math.cos((lat1 + lat2) * Math.PI / 360);
+      const z = R * dLat;
+      return { x, z };
+    }
+
+    // Target GPS coords
+    const targetLat = 53.4697234;
+    const targetLon = -2.2340321;
+
+    // Create sphere
+    const geometry = new THREE.SphereGeometry(0.5, 32, 32);
+    const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+    const sphere = new THREE.Mesh(geometry, material);
+
+    // Lighting
+    const light = new THREE.HemisphereLight(0xffffff, 0x444444);
+    scene.add(light);
+
+    function placeSphereAtLocation(userLat, userLon) {
+      const offset = geoToMeters(userLat, userLon, targetLat, targetLon);
+
+      // In AR space, z is forward, x is sideways
+      sphere.position.set(offset.x, 0, -offset.z);
+      scene.add(sphere);
+
+      overlay.innerHTML = `
+        Your Location: ${userLat.toFixed(5)}, ${userLon.toFixed(5)}<br/>
+        Target Offset: x=${offset.x.toFixed(2)}m, z=${offset.z.toFixed(2)}m
+      `;
+    }
+
+    function startAR() {
+      const sessionInit = {
+        optionalFeatures: ['dom-overlay'],
+        requiredFeatures: ['hit-test'],
+        domOverlay: { root: document.body }
+      };
+      navigator.xr.requestSession('immersive-ar', sessionInit).then(onSessionStarted);
+    }
+
+    function onSessionStarted(session) {
+      renderer.xr.setReferenceSpaceType('local');
+      renderer.xr.setSession(session);
+      arButton.textContent = 'Stop AR';
+    }
+
+    function animate() {
+      renderer.setAnimationLoop(() => {
+        renderer.render(scene, camera);
+      });
+    }
+
+    arButton.addEventListener('click', () => {
+      if (renderer.xr.getSession() === null) {
+        startAR();
+      } else {
+        renderer.xr.getSession().end();
+        arButton.textContent = 'Start AR';
+      }
+    });
+
+    // Use Geolocation API to get user location
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        position => {
+          const userLat = position.coords.latitude;
+          const userLon = position.coords.longitude;
+          placeSphereAtLocation(userLat, userLon);
+        },
+        error => {
+          overlay.textContent = "Error getting location.";
+          console.error(error);
+        },
+        { enableHighAccuracy: true }
+      );
+    } else {
+      overlay.textContent = "Geolocation not supported.";
+    }
+
+    animate();
+  </script>
+</body>
+
+</html> -->
+
+
 <!DOCTYPE html>
 <html lang="en">
 
