@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -65,36 +65,6 @@
         right: 20px;
         z-index: 1000;
       }
-      
-      /* Added HP bar styles */
-      #hpBar {
-        position: fixed;
-        top: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 80%;
-        max-width: 300px;
-        background-color: rgba(0, 0, 0, 0.7);
-        border-radius: 5px;
-        padding: 10px;
-        z-index: 1000;
-        display: none;
-      }
-      
-      #hpFill {
-        height: 20px;
-        width: 100%;
-        background-color: #4caf50;
-        border-radius: 3px;
-        transition: width 0.3s ease;
-      }
-      
-      #hpText {
-        color: white;
-        text-align: center;
-        font-family: Arial, sans-serif;
-        margin-top: 5px;
-      }
     </style>
   </head>
   <body>
@@ -124,32 +94,9 @@
     <!-- Status Info and Place Object Button -->
     <div id="statusInfo" class="hidden">Initializing...</div>
     <button id="placeObjectButton" class="hidden">Place Ball Here</button>
-    
-    <!-- HP Bar for the monster -->
-    <div id="hpBar">
-      <div id="hpFill"></div>
-      <div id="hpText">100/100 HP</div>
-    </div>
 
     <script>
-      // Global variables for position tracking
-      let currentLat = null;
-      let currentLng = null;
-      let placedBallEntity = null;
-      let monsterHP = 100;
-      let isPlaced = false;
-      
-      // Get DOM elements
-      const startScreen = document.getElementById('startScreen');
-      const startButton = document.getElementById('startButton');
-      const arScene = document.getElementById('arScene');
-      const statusInfo = document.getElementById('statusInfo');
-      const placeObjectButton = document.getElementById('placeObjectButton');
-      const hpBar = document.getElementById('hpBar');
-      const hpFill = document.getElementById('hpFill');
-      const hpText = document.getElementById('hpText');
-
-      // Modified visibility-check component with wider angle
+      // Register a custom component to control object visibility based on angle/distance.
       AFRAME.registerComponent("visibility-check", {
         tick: function () {
           const cameraEl = document.querySelector("[gps-camera]");
@@ -172,217 +119,96 @@
             return;
           }
 
-          // Original angle check with wider 90° threshold
-          const directionToObject = new THREE.Vector3()
-            .subVectors(objPosition, camPosition)
-            .normalize();
-          const cameraForward = new THREE.Vector3(0, 0, -1)
-            .applyQuaternion(cameraObj.quaternion)
-            .normalize();
+          // Angle check: show if within a 90° field-of-view
+          const directionToObject = new THREE.Vector3().subVectors(objPosition, camPosition).normalize();
+          const cameraForward = new THREE.Vector3(0, 0, -1).applyQuaternion(cameraObj.quaternion).normalize();
           const angle = cameraForward.angleTo(directionToObject);
           const threshold = THREE.MathUtils.degToRad(90); // 90° viewing angle
           this.el.setAttribute("visible", angle < threshold);
         },
       });
 
-      // Create monster/ball at specific GPS coordinates
+      // Function to create and place an AR object (ball) at a fixed GPS location.
       function createARObject(lat, lng, label, color = "red") {
         const entity = document.createElement("a-entity");
-        entity.setAttribute(
-          "gps-entity-place",
-          `latitude: ${lat}; longitude: ${lng};`
-        );
+        entity.setAttribute("gps-entity-place", `latitude: ${lat}; longitude: ${lng};`);
         entity.setAttribute("visibility-check", "");
-        entity.setAttribute("id", "monster");
 
-        // Larger, more visible sphere
+        // Create a sphere to represent the ball.
         const sphere = document.createElement("a-sphere");
-        sphere.setAttribute("radius", "5"); // 5 meters
+        sphere.setAttribute("radius", "5"); // Adjust size as needed.
         sphere.setAttribute("color", color);
         sphere.setAttribute("opacity", "0.9");
-        sphere.setAttribute("material", "shader: flat;"); // Better visibility
-        sphere.setAttribute("class", "clickable");
-        sphere.setAttribute("id", "monsterBody");
+        sphere.setAttribute("material", "shader: flat;");
 
-        // Text label with contrast
+        // Create a text label.
         const textEntity = document.createElement("a-text");
         textEntity.setAttribute("value", label);
         textEntity.setAttribute("look-at", "[gps-camera]");
-        textEntity.setAttribute("scale", "5 5 5"); // Larger text
-        textEntity.setAttribute("color", "#ffffff"); // White text for contrast
-        textEntity.setAttribute("position", "0 7 0"); // Higher position
+        textEntity.setAttribute("scale", "5 5 5");
+        textEntity.setAttribute("color", "#ffffff");
+        textEntity.setAttribute("position", "0 7 0");
 
-        // Add animation for better visibility
+        // Add an animation for better visibility.
         sphere.setAttribute("animation", {
           property: "scale",
           to: "1.2 1.2 1.2",
           dur: 2000,
           loop: true,
           easing: "easeInOutQuad",
-          dir: "alternate"
-        });
-
-        // Add click listener for attacks
-        sphere.addEventListener('click', function() {
-          attackMonster();
         });
 
         entity.appendChild(sphere);
         entity.appendChild(textEntity);
         document.querySelector("a-scene").appendChild(entity);
-
-        // Debug log
         console.log(`Ball placed at: ${lat}, ${lng}`);
-        updateStatus(`Monster placed at: Lat ${lat.toFixed(6)}, Lng ${lng.toFixed(6)}`);
-        
         return entity;
       }
-      
-      // Attack the monster
-      function attackMonster() {
-        if (!isPlaced) return;
-        
-        // Reduce HP by random amount between 5 and 15
-        const damage = Math.floor(Math.random() * 11) + 5;
-        monsterHP = Math.max(0, monsterHP - damage);
-        
-        // Update HP bar
-        updateHPBar();
-        
-        // Visual feedback
-        const monsterBody = document.getElementById('monsterBody');
-        monsterBody.setAttribute("color", "yellow");
-        setTimeout(() => {
-          monsterBody.setAttribute("color", "red");
-        }, 200);
-        
-        // Check if monster is defeated
-        if (monsterHP <= 0) {
-          updateStatus("Monster defeated!");
-          
-          // Add victory animation
-          const monster = document.getElementById('monster');
-          monster.setAttribute("animation", {
-            property: "position",
-            to: "0 -10 0",
-            dur: 2000,
-            easing: "easeInQuad"
+
+      // Get DOM elements.
+      const startButton = document.getElementById("startButton");
+      const placeObjectButton = document.getElementById("placeObjectButton");
+      const startScreen = document.getElementById("startScreen");
+      const arScene = document.getElementById("arScene");
+      const statusInfo = document.getElementById("statusInfo");
+
+      // Function to initialize the AR camera and scene.
+      function initAR() {
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+          .then(function (stream) {
+            // Stop the test stream.
+            stream.getTracks().forEach(track => track.stop());
+            // Hide the start screen and show the AR scene and UI.
+            startScreen.classList.add("hidden");
+            arScene.classList.remove("hidden");
+            placeObjectButton.classList.remove("hidden");
+            statusInfo.classList.remove("hidden");
+            statusInfo.textContent = "AR initialized. Move around and press 'Place Ball Here' when ready.";
+            console.log("AR camera initialized");
+          })
+          .catch(function (error) {
+            console.error("Camera access error:", error);
+            statusInfo.textContent = "Camera access denied or not available.";
           });
-          
-          // Disable further attacks
-          isPlaced = false;
-          
-          // Reset button to allow placing a new monster
-          placeObjectButton.textContent = "Place New Monster";
-          placeObjectButton.style.display = "block";
-        }
-      }
-      
-      // Update HP bar display
-      function updateHPBar() {
-        const percentage = (monsterHP / 100) * 100;
-        hpFill.style.width = `${percentage}%`;
-        hpText.textContent = `${monsterHP}/100 HP`;
-        
-        // Change color based on remaining HP
-        if (percentage > 60) {
-          hpFill.style.backgroundColor = "#4caf50"; // Green
-        } else if (percentage > 30) {
-          hpFill.style.backgroundColor = "#ff9800"; // Orange
-        } else {
-          hpFill.style.backgroundColor = "#f44336"; // Red
-        }
-      }
-      
-      // Update status message
-      function updateStatus(message) {
-        statusInfo.textContent = message;
       }
 
-      // Initialize AR experience
-      function initializeAR() {
-        // Hide start screen and show AR scene
-        startScreen.classList.add('hidden');
-        arScene.classList.remove('hidden');
-        statusInfo.classList.remove('hidden');
-        placeObjectButton.classList.remove('hidden');
-        
-        updateStatus("Getting your location...");
-        
-        // Get user's location
+      // Start button event.
+      startButton.addEventListener("click", initAR);
+
+      // Place Object button event.
+      placeObjectButton.addEventListener("click", function () {
         if (navigator.geolocation) {
-          navigator.geolocation.watchPosition(
-            (position) => {
-              currentLat = position.coords.latitude;
-              currentLng = position.coords.longitude;
-              
-              if (!isPlaced) {
-                updateStatus(`Ready to place monster. Your location: ${currentLat.toFixed(6)}, ${currentLng.toFixed(6)}`);
-              }
-            },
-            (error) => {
-              updateStatus(`Error getting location: ${error.message}`);
-            },
-            {
-              enableHighAccuracy: true,
-              maximumAge: 0,
-              timeout: 27000
-            }
-          );
-        } else {
-          updateStatus("Geolocation is not supported by this browser");
-        }
-        
-        // Register click-detection component
-        if (!AFRAME.components["click-detection"]) {
-          AFRAME.registerComponent("click-detection", {
-            init: function() {
-              this.el.addEventListener("click", function() {
-                console.log("Object clicked!");
-              });
-            }
+          navigator.geolocation.getCurrentPosition(function (position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            statusInfo.textContent = `Ball placed at: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+            createARObject(lat, lng, "AR Ball", "red");
+          }, function (error) {
+            console.error("Geolocation error:", error);
+            statusInfo.textContent = "Failed to get current location.";
           });
-        }
-      }
-      
-      // Event Listeners
-      startButton.addEventListener('click', initializeAR);
-      
-      placeObjectButton.addEventListener('click', () => {
-        if (!currentLat || !currentLng) {
-          updateStatus("Still waiting for your location...");
-          return;
-        }
-        
-        // If a ball is already placed, remove it
-        if (placedBallEntity) {
-          document.querySelector('a-scene').removeChild(placedBallEntity);
-        }
-        
-        // Reset monster HP
-        monsterHP = 100;
-        updateHPBar();
-        
-        // Create a new ball at current location
-        placedBallEntity = createARObject(currentLat, currentLng, "MONSTER", "red");
-        isPlaced = true;
-        
-        // Show HP bar
-        hpBar.style.display = "block";
-        
-        // Hide place button during active game
-        placeObjectButton.style.display = "none";
-      });
-      
-      // Setup cursor for interactions with objects
-      document.addEventListener('DOMContentLoaded', () => {
-        const camera = document.querySelector('a-camera');
-        if (camera) {
-          // Add cursor for interaction
-          const cursor = document.createElement('a-cursor');
-          cursor.setAttribute('raycaster', 'objects: .clickable');
-          cursor.setAttribute('color', 'white');
-          camera.appendChild(cursor);
+        } else {
+          alert("Geolocation is not supported by your browser.");
         }
       });
     </script>
