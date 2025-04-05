@@ -65,6 +65,10 @@
         right: 20px;
         z-index: 1000;
       }
+      /* Add this to ensure proper button layering */
+      a-scene {
+        z-index: 0;
+      }
     </style>
   </head>
   <body>
@@ -96,85 +100,150 @@
     <button id="placeObjectButton" class="hidden">Place Ball Here</button>
 
     <script>
-      // Modified visibility-check component with wider angle
+      // CURRENT POSITION WITH DEFAULT VALUES
+      let currentLat = null;
+      let currentLng = null;
+      let currentAlt = 0; // Add altitude support
+
+      // IMPROVED VISIBILITY CHECK COMPONENT
       AFRAME.registerComponent("visibility-check", {
         tick: function () {
           const cameraEl = document.querySelector("[gps-camera]");
           if (!cameraEl) return;
+
           const cameraObj = cameraEl.object3D;
           const objectObj = this.el.object3D;
 
           // Get world positions
           const camPosition = new THREE.Vector3();
-          cameraObj.getWorldPosition(camPosition);
           const objPosition = new THREE.Vector3();
+          cameraObj.getWorldPosition(camPosition);
           objectObj.getWorldPosition(objPosition);
 
-          // Calculate distance between camera and object
+          // Always show within 50 meters
           const distance = camPosition.distanceTo(objPosition);
-
-          // Always show if within 20 meters
-          if (distance < 20) {
+          if (distance < 50) {
             this.el.setAttribute("visible", true);
             return;
           }
 
-          // Original angle check with wider 90° threshold
-          const directionToObject = new THREE.Vector3()
-            .subVectors(objPosition, camPosition)
-            .normalize();
-          const cameraForward = new THREE.Vector3(0, 0, -1)
+          // Calculate visibility angle (90° threshold)
+          const cameraDirection = new THREE.Vector3(0, 0, -1)
             .applyQuaternion(cameraObj.quaternion)
             .normalize();
-          const angle = cameraForward.angleTo(directionToObject);
-          const threshold = THREE.MathUtils.degToRad(90); // 90° viewing angle
-          this.el.setAttribute("visible", angle < threshold);
+          const objectDirection = new THREE.Vector3()
+            .subVectors(objPosition, camPosition)
+            .normalize();
+
+          const angle = cameraDirection.angleTo(objectDirection);
+          this.el.setAttribute("visible", angle < Math.PI / 2); // 90 degrees in radians
         },
       });
 
-      // Modified createARObject function with better visibility
-      function createARObject(lat, lng, label, color = "red") {
+      // IMPROVED OBJECT CREATION
+      function createARObject(lat, lng) {
         const entity = document.createElement("a-entity");
-        entity.setAttribute(
-          "gps-entity-place",
-          `latitude: ${lat}; longitude: ${lng};`
-        );
+
+        // Add altitude to prevent underground placement
+        entity.setAttribute("gps-entity-place", {
+          latitude: lat,
+          longitude: lng,
+          altitude: currentAlt + 1.6, // Add 1.6m height offset
+        });
+
         entity.setAttribute("visibility-check", "");
 
-        // Larger, more visible sphere
+        // Create visible sphere
         const sphere = document.createElement("a-sphere");
-        sphere.setAttribute("radius", "5"); // Increased from 0.5 to 5 meters
-        sphere.setAttribute("color", color);
-        sphere.setAttribute("opacity", "0.9");
-        sphere.setAttribute("material", "shader: flat;"); // Better visibility
+        sphere.setAttribute("radius", 3);
+        sphere.setAttribute("color", "#FF0000");
+        sphere.setAttribute(
+          "material",
+          "shader: flat; metalness: 0; roughness: 0;"
+        );
 
-        // Text label with contrast
-        const textEntity = document.createElement("a-text");
-        textEntity.setAttribute("value", label);
-        textEntity.setAttribute("look-at", "[gps-camera]");
-        textEntity.setAttribute("scale", "5 5 5"); // Larger text
-        textEntity.setAttribute("color", "#ffffff"); // White text for contrast
-        textEntity.setAttribute("position", "0 7 0"); // Higher position
-
-        // Add animation for better visibility
+        // Pulse animation
         sphere.setAttribute("animation", {
           property: "scale",
-          to: "1.2 1.2 1.2",
-          dur: 2000,
+          from: "1 1 1",
+          to: "1.5 1.5 1.5",
+          dur: 1500,
           loop: true,
-          easing: "easeInOutQuad",
+          easing: "easeInOutSine",
         });
 
         entity.appendChild(sphere);
-        entity.appendChild(textEntity);
         document.querySelector("a-scene").appendChild(entity);
-
-        // Debug log
-        console.log(`Ball placed at: ${lat}, ${lng}`);
-        console.log(`Current position: ${currentLat}, ${currentLng}`);
-
-        return entity;
       }
+
+      // ENHANCED GEOLOCATION HANDLING
+      function watchPosition() {
+        return navigator.geolocation.watchPosition(
+          (position) => {
+            currentLat = position.coords.latitude;
+            currentLng = position.coords.longitude;
+            currentAlt = position.coords.altitude || 0;
+            statusInfo.textContent = `Location: ${currentLat.toFixed(
+              6
+            )}, ${currentLng.toFixed(
+              6
+            )} (Accuracy: ${position.coords.accuracy.toFixed(1)}m)`;
+          },
+          (error) => {
+            statusInfo.textContent = `Error: ${error.message}`;
+            console.error("Geolocation error:", error);
+          },
+          {
+            enableHighAccuracy: true,
+            maximumAge: 0,
+            timeout: 15000,
+          }
+        );
+      }
+
+      // MODIFIED INITIALIZATION
+      async function initAR() {
+        try {
+          startScreen.classList.add("hidden");
+          arScene.classList.remove("hidden");
+          statusInfo.classList.remove("hidden");
+
+          const position = await getCurrentPosition();
+          currentLat = position.coords.latitude;
+          currentLng = position.coords.longitude;
+          currentAlt = position.coords.altitude || 0;
+
+          // Initialize camera with simulated position
+          const camera = document.querySelector("a-camera");
+          camera.setAttribute("gps-camera", {
+            simulateLatitude: currentLat,
+            simulateLongitude: currentLng,
+            positionMinAccuracy: 10,
+          });
+
+          placeObjectButton.classList.remove("hidden");
+          watchPosition();
+        } catch (error) {
+          statusInfo.textContent = `Error: ${error.message}`;
+        }
+      }
+
+      // SIMPLIFIED PLACEMENT FUNCTION
+      function placeBallAtCurrentLocation() {
+        if (!currentLat || !currentLng) {
+          statusInfo.textContent = "Waiting for location...";
+          return;
+        }
+
+        createARObject(currentLat, currentLng);
+        statusInfo.textContent = `Ball placed at ${new Date().toLocaleTimeString()}`;
+      }
+
+      // INITIALIZE EVENT LISTENERS
+      document.addEventListener("DOMContentLoaded", () => {
+        startButton.addEventListener("click", initAR);
+        placeObjectButton.addEventListener("click", placeBallAtCurrentLocation);
+      });
     </script>
   </body>
 </html>
