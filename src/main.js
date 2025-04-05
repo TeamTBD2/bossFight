@@ -44,7 +44,7 @@ locar.on("gpsupdate", (pos, distMoved) => {
       colour: 0x00ff00
     }];
 
-    const geom = new THREE.BoxGeometry(10, 10, 10);
+    const geom = new THREE.BoxGeometry(1, 1, 1);
 
     for (const boxProp of boxProps) {
       const mesh = new THREE.Mesh(
