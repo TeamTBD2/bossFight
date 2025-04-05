@@ -127,7 +127,7 @@
       }
     });
 
-    // Use Geolocation API to get user location
+    // // Use Geolocation API to get user location
     // if ('geolocation' in navigator) {
     //   navigator.geolocation.getCurrentPosition(
     //     position => {
@@ -144,6 +144,8 @@
     // } else {
     //   overlay.textContent = "Geolocation not supported.";
     // }
+
+    placeSphereAtLocation(userLat, userLon);
 
     animate();
   </script>
