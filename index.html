@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>WebXR AR Camera Feed with GPS</title>
+  <title>WebXR AR Camera Feed with Lat/Long Sphere</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
@@ -40,55 +40,35 @@
     // Add AR Button
     document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
 
+    // Function to convert latitude and longitude to 3D coordinates
+    function latLonTo3D(lat, lon, radius = 10) {
+      const phi = (90 - lat) * (Math.PI / 180); // Convert latitude to radians
+      const theta = (lon + 180) * (Math.PI / 180); // Convert longitude to radians
+
+      // Spherical to Cartesian conversion
+      const x = radius * Math.sin(phi) * Math.cos(theta);
+      const y = radius * Math.cos(phi);
+      const z = radius * Math.sin(phi) * Math.sin(theta);
+
+      return new THREE.Vector3(x, y, z);
+    }
+
+    // Example: Place the sphere at a specified lat/long (e.g., London: 51.5074° N, 0.1278° W)
+    const lat = 53.4697234; // Latitude for London
+    const lon = -2.2340321; // Longitude for London
+    const spherePosition = latLonTo3D(lat, lon, 10); // radius of 10 for scale
+
     // Create a red sphere
     const geometry = new THREE.SphereGeometry(0.1, 32, 32); // radius, widthSegments, heightSegments
     const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
     const sphere = new THREE.Mesh(geometry, material);
 
+    sphere.position.copy(spherePosition); // Set the sphere position to lat/lon converted coordinates
     scene.add(sphere);
 
     // Lighting
     const light = new THREE.HemisphereLight(0xffffff, 0x444444);
     scene.add(light);
-
-    // Get the user's current location (latitude, longitude, and altitude)
-    function getCurrentLocation() {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function (position) {
-          const latitude = position.coords.latitude;
-          const longitude = position.coords.longitude;
-          const altitude = position.coords.altitude || 0; // If available
-
-          // Example target lat/long for the object (can replace with your desired lat/long)
-          const targetLat = 53.4697234; // Example latitude
-          const targetLon = -2.2340321; // Example longitude
-
-          // Convert lat/lon to 3D position relative to user
-          const distance = 50; // distance in meters
-
-          const userLat = latitude;
-          const userLon = longitude;
-
-          // Convert lat/lon to radians
-          const latRad = (Math.PI / 180) * userLat;
-          const lonRad = (Math.PI / 180) * userLon;
-
-          // Convert target lat/lon to radians
-          const targetLatRad = (Math.PI / 180) * targetLat;
-          const targetLonRad = (Math.PI / 180) * targetLon;
-
-          // Calculate 3D position (very simplified for demo purposes)
-          const dx = (targetLonRad - lonRad) * distance;
-          const dy = (targetLatRad - latRad) * distance;
-
-          // Set position of the sphere (relative to the user's position)
-          sphere.position.set(dx, 0, dy);
-        });
-      }
-    }
-
-    // Call to get current location
-    getCurrentLocation();
 
     function animate() {
       renderer.setAnimationLoop(() => {
