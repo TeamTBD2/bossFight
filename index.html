@@ -30,20 +30,26 @@
     .control-panel {
       background-color: rgba(0, 0, 0, 0.5);
       border-radius: 10px;
-      padding: 10px;
-      display: flex;
-      gap: 10px;
+      padding: 15px;
       pointer-events: auto;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(2, auto);
+      gap: 8px;
+      width: auto;
+      max-width: 90%;
     }
 
     button {
-      padding: 12px 20px;
+      padding: 12px 10px;
       background-color: rgba(255, 255, 255, 0.8);
       border: none;
       border-radius: 5px;
       font-weight: bold;
       cursor: pointer;
-      font-size: 16px;
+      font-size: 14px;
+      min-width: 90px;
+      width: auto;
     }
 
     button:active {
@@ -63,6 +69,16 @@
       font-weight: bold;
       cursor: pointer;
       z-index: 999;
+      width: auto;
+    }
+
+    /* Optional: add some styling to make specific buttons stand out */
+    #moveUp {
+      background-color: rgba(200, 255, 200, 0.9);
+    }
+
+    #moveDown {
+      background-color: rgba(255, 200, 200, 0.9);
     }
   </style>
 </head>
@@ -70,13 +86,12 @@
 <body>
   <div id="overlay">
     <div class="control-panel">
-      <button id="moveForward">Move Forward</button>
-      <button id="moveBackward">Move Backward</button>
-      <button id="moveLeft">Move Left</button>
-      <button id="moveRight">Move Right</button>
-      <button id="moveUp">Move Up</button>
-      <button id="moveDown">Move Down</button>
-
+      <button id="moveLeft">Left</button>
+      <button id="moveForward">Forward</button>
+      <button id="moveRight">Right</button>
+      <button id="moveDown">Down</button>
+      <button id="moveBackward">Back</button>
+      <button id="moveUp">Up</button>
     </div>
   </div>
 
