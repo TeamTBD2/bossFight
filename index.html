@@ -58,7 +58,7 @@
         z-index: 999;
         max-width: 80%;
       }
-      /* Fixed positioning for the placement button */
+      /* ADDED: Fixed positioning for the placement button */
       #placeObjectButton {
         position: fixed;
         bottom: 20px;
@@ -96,11 +96,7 @@
     <button id="placeObjectButton" class="hidden">Place Ball Here</button>
 
     <script>
-      // Global variables to hold current GPS coordinates
-      let currentLat = null;
-      let currentLng = null;
-
-      // Modified visibility-check component with a relaxed 120° viewing angle
+      // Modified visibility-check component with wider angle
       AFRAME.registerComponent("visibility-check", {
         tick: function () {
           const cameraEl = document.querySelector("[gps-camera]");
@@ -118,12 +114,12 @@
           const distance = camPosition.distanceTo(objPosition);
 
           // Always show if within 20 meters
-          if (distance < 20) {
+          if (distance < 1000) {
             this.el.setAttribute("visible", true);
             return;
           }
 
-          // Angle check with a relaxed 120° threshold
+          // Original angle check with wider 90° threshold
           const directionToObject = new THREE.Vector3()
             .subVectors(objPosition, camPosition)
             .normalize();
@@ -131,67 +127,36 @@
             .applyQuaternion(cameraObj.quaternion)
             .normalize();
           const angle = cameraForward.angleTo(directionToObject);
-          const threshold = THREE.MathUtils.degToRad(120); // increased from 90° to 120°
+          const threshold = THREE.MathUtils.degToRad(90); // 90° viewing angle
           this.el.setAttribute("visible", angle < threshold);
         },
       });
 
-      // Helper function to compute an offset coordinate 10 meters away in the direction of the bearing
-      function offsetCoordinates(lat, lng, distance, bearing) {
-        const R = 6378137; // Earth's radius in meters
-        const latRad = THREE.MathUtils.degToRad(lat);
-        const lngRad = THREE.MathUtils.degToRad(lng);
-        const bearingRad = THREE.MathUtils.degToRad(bearing);
-
-        const newLat = Math.asin(
-          Math.sin(latRad) * Math.cos(distance / R) +
-            Math.cos(latRad) * Math.sin(distance / R) * Math.cos(bearingRad)
-        );
-        const newLng =
-          lngRad +
-          Math.atan2(
-            Math.sin(bearingRad) * Math.sin(distance / R) * Math.cos(latRad),
-            Math.cos(distance / R) - Math.sin(latRad) * Math.sin(newLat)
-          );
-
-        return {
-          lat: THREE.MathUtils.radToDeg(newLat),
-          lng: THREE.MathUtils.radToDeg(newLng),
-        };
-      }
-
-      // Modified createARObject function that places the ball 10 m ahead of the current position
-      function createARObject(label, color = "red") {
-        const camera = document.querySelector("[gps-camera]");
-        const cameraRotation = camera.getAttribute("rotation");
-        const bearing = cameraRotation.y; // Use the camera's y-rotation as the bearing
-
-        // Compute the new position 10 meters ahead of the current position
-        const offset = offsetCoordinates(currentLat, currentLng, 10, bearing);
-
+      // Modified createARObject function with better visibility
+      function createARObject(lat, lng, label, color = "red") {
         const entity = document.createElement("a-entity");
         entity.setAttribute(
           "gps-entity-place",
-          `latitude: ${offset.lat}; longitude: ${offset.lng};`
+          `latitude: ${lat}; longitude: ${lng};`
         );
-        entity.setAttribute("visibility-check", ""); // Custom component for showing/hiding
+        entity.setAttribute("visibility-check", "");
 
-        // Create a larger, more visible sphere
+        // Larger, more visible sphere
         const sphere = document.createElement("a-sphere");
-        sphere.setAttribute("radius", "5"); // increased radius
+        sphere.setAttribute("radius", "2"); // Increased from 0.5 to 5 meters
         sphere.setAttribute("color", color);
         sphere.setAttribute("opacity", "0.9");
-        sphere.setAttribute("material", "shader: flat;");
+        sphere.setAttribute("material", "shader: flat;"); // Better visibility
 
-        // Create a text label that always faces the camera
+        // Text label with contrast
         const textEntity = document.createElement("a-text");
         textEntity.setAttribute("value", label);
         textEntity.setAttribute("look-at", "[gps-camera]");
-        textEntity.setAttribute("scale", "5 5 5");
-        textEntity.setAttribute("color", "#ffffff");
-        textEntity.setAttribute("position", "0 7 0");
+        textEntity.setAttribute("scale", "5 5 5"); // Larger text
+        textEntity.setAttribute("color", "#ffffff"); // White text for contrast
+        textEntity.setAttribute("position", "0 7 0"); // Higher position
 
-        // Add an animation for a pulsing effect
+        // Add animation for better visibility
         sphere.setAttribute("animation", {
           property: "scale",
           to: "1.2 1.2 1.2",
@@ -204,43 +169,12 @@
         entity.appendChild(textEntity);
         document.querySelector("a-scene").appendChild(entity);
 
-        console.log(`Ball placed at: ${offset.lat}, ${offset.lng}`);
+        // Debug log
+        console.log(`Ball placed at: ${lat}, ${lng}`);
         console.log(`Current position: ${currentLat}, ${currentLng}`);
 
         return entity;
       }
-
-      // Event listener for the start button to hide the start screen and show the AR scene
-      document
-        .getElementById("startButton")
-        .addEventListener("click", function () {
-          document.getElementById("startScreen").classList.add("hidden");
-          document.getElementById("arScene").classList.remove("hidden");
-          document.getElementById("statusInfo").classList.remove("hidden");
-          document
-            .getElementById("placeObjectButton")
-            .classList.remove("hidden");
-        });
-
-      // Update current GPS coordinates when the gps-camera emits position updates
-      document
-        .querySelector("[gps-camera]")
-        .addEventListener("gps-camera-update-position", function (e) {
-          currentLat = e.detail.position.latitude;
-          currentLng = e.detail.position.longitude;
-          document.getElementById(
-            "statusInfo"
-          ).innerText = `Lat: ${currentLat.toFixed(
-            5
-          )}, Lng: ${currentLng.toFixed(5)}`;
-        });
-
-      // Event listener for the place object button to create the AR object
-      document
-        .getElementById("placeObjectButton")
-        .addEventListener("click", function () {
-          createARObject("AR Ball", "red");
-        });
     </script>
   </body>
 </html>
