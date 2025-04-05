@@ -26,11 +26,6 @@ const deviceOrientationControls = new LocAR.DeviceOrientationControls(camera);
 
 locar.on("gpsupdate", (pos, distMoved) => {
   if (firstLocation) {
-    const gpsEvent = new CustomEvent("gpsupdateMessage", {
-      detail: { pos: originalPos, distMoved }
-    });
-    window.dispatchEvent(gpsEvent);
-
     let originalPos = pos;
 
     const boxProps = [{
@@ -65,6 +60,19 @@ locar.on("gpsupdate", (pos, distMoved) => {
         originalPos.coords.latitude + boxProp.latDis
       );
     }
+
+    // Dispatch a custom event (if you need it on the client)
+    const gpsEvent = new CustomEvent("gpsupdateMessage", {
+      detail: { pos: originalPos, distMoved }
+    });
+    window.dispatchEvent(gpsEvent);
+
+    // Also send the GPS update to the server
+    fetch("/gps-update", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pos: originalPos, distMoved })
+    }).catch(err => console.error("Error sending GPS update:", err));
 
     firstLocation = false;
   }
