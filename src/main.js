@@ -31,24 +31,65 @@ const box = new THREE.Mesh(boxGeometry, boxMaterial);
 
 // Flag to track if the box has been placed
 let boxPlaced = false;
+// Store the initial position to calculate relative positions
+let initialPosition = null;
 
+// Create a local coordinate system instead of relying on GPS updates
 locar.on("gpsupdate", async (pos) => {
-  // Only place the box once when we first get a GPS position
-  if (!boxPlaced) {
-    // Calculate a position 1 meter north of the user's position
-    // We use the haversine formula to calculate the latitude change for 1 meter
-    const earthRadius = 6371000; // Earth radius in meters
-    const latChange = (1 / earthRadius) * (180 / Math.PI);
+  if (!initialPosition) {
+    // Store the first GPS position as our reference point
+    initialPosition = {
+      latitude: pos.coords.latitude,
+      longitude: pos.coords.longitude,
+      accuracy: pos.coords.accuracy
+    };
     
-    // Place the box 1 meter north of the user
-    const boxLat = pos.coords.latitude + latChange;
-    const boxLon = pos.coords.longitude;
+    console.log("Initial position set:", initialPosition);
     
-    // Add the box to the scene at the calculated position
-    locar.add(box, boxLon, boxLat, 0, { name: "AR Box" });
+    // Place the box 1 meter in front of the user in the local coordinate system
+    // We'll use a local coordinate system relative to the user's initial position
+    const boxMesh = new THREE.Mesh(boxGeometry, boxMaterial);
+    
+    // Add the box to the scene at a fixed position 1 meter in front of the initial position
+    // This uses the local coordinate system of the scene
+    boxMesh.position.set(0, 0, -1); // 1 meter in front (negative z is forward)
+    scene.add(boxMesh);
+    
+    // Set up the initial position for the location-based system
+    locar.setWorldPosition(boxMesh, initialPosition.longitude, initialPosition.latitude);
     
     boxPlaced = true;
-    console.log("Box placed 1 meter away at:", boxLon, boxLat);
+    console.log("Box placed 1 meter in front of initial position");
+  }
+});
+
+// Alternative approach: place the box relative to the camera on first position
+// and then let it stay fixed in the world
+document.getElementById("placeBox").addEventListener("click", () => {
+  if (!boxPlaced) {
+    // Create a box 1 meter in front of the camera
+    const boxMesh = new THREE.Mesh(boxGeometry, boxMaterial);
+    
+    // Position the box 1 meter in front of the camera
+    boxMesh.position.set(0, 0, -1);
+    
+    // Get the camera's current position and orientation
+    const cameraWorldPosition = new THREE.Vector3();
+    camera.getWorldPosition(cameraWorldPosition);
+    
+    // Apply the camera's rotation to the box position
+    const cameraDirection = new THREE.Vector3(0, 0, -1);
+    cameraDirection.applyQuaternion(camera.quaternion);
+    cameraDirection.multiplyScalar(1); // 1 meter distance
+    
+    // Set the box position
+    boxMesh.position.copy(cameraWorldPosition).add(cameraDirection);
+    
+    // Add the box to the scene
+    scene.add(boxMesh);
+    
+    boxPlaced = true;
+    console.log("Box placed 1 meter in front of camera");
   }
 });
 
@@ -59,9 +100,22 @@ document.getElementById("setFakeLoc").addEventListener("click", (e) => {
     parseFloat(document.getElementById("fakeLon").value),
     parseFloat(document.getElementById("fakeLat").value)
   );
-  // Reset box placement so it will be placed again with the new location
+  // Reset initial position and box placement
+  initialPosition = null;
   boxPlaced = false;
 });
+
+// Add a button to the UI for placing the box
+const placeBoxButton = document.createElement("button");
+placeBoxButton.id = "placeBox";
+placeBoxButton.textContent = "Place Box Here";
+placeBoxButton.style.position = "absolute";
+placeBoxButton.style.bottom = "20px";
+placeBoxButton.style.left = "50%";
+placeBoxButton.style.transform = "translateX(-50%)";
+placeBoxButton.style.padding = "10px 20px";
+placeBoxButton.style.zIndex = "1000";
+document.body.appendChild(placeBoxButton);
 
 locar.startGps();
 
@@ -73,7 +127,7 @@ function animate() {
   
   const objects = clickHandler.raycast(camera, scene);
   if (objects.length) {
-    alert(`This is ${objects[0].object.properties.name}`);
+    alert(`This is ${objects[0].object.properties?.name || "AR Box"}`);
   }
   
   renderer.render(scene, camera);
