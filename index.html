@@ -18,6 +18,7 @@
 
     #overlay {
       position: fixed;
+      height: 100vh;
       bottom: 0%;
       left: 0;
       right: 0;
@@ -29,6 +30,14 @@
     }
 
     .control-panel {
+      position: fixed;
+      /* Fixed positioning will anchor it to the viewport */
+      bottom: 100px;
+      /* Position it 100px from the bottom */
+      left: 50%;
+      /* Center it horizontally */
+      transform: translateX(-50%);
+      /* Adjust for exact centering */
       background-color: rgba(0, 0, 0, 0.5);
       border-radius: 10px;
       padding: 15px;
@@ -40,9 +49,9 @@
       width: auto;
       max-width: 90%;
       height: auto;
-      bottom: 100px;
       max-height: 100px;
     }
+
 
     .button-wrapper {
       width: 100%;
@@ -95,12 +104,36 @@
     #moveDown {
       background-color: rgba(255, 200, 200, 0.9);
     }
+
+    #readyButton {
+      position: fixed;
+      top: 125px;
+      /* You can adjust the value to position it further down or up */
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 20px;
+      background-color: #4285f4;
+      color: white;
+      font-weight: bold;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      z-index: 999;
+      height: 50px;
+    }
+
+    #readyButton:active {
+      background-color: rgba(200, 200, 200, 0.8);
+    }
   </style>
 </head>
 
 <body>
+
+
   <div id="overlay">
     <div class="control-panel">
+      <button id="readyButton">Ready</button>
       <div class="button-wrapper">
         <button id="moveLeft">Left</button>
       </div>
@@ -234,6 +267,10 @@
 
     document.getElementById('moveDown').addEventListener('click', () => {
       sphere.position.y -= moveDistance;
+    });
+
+    document.getElementById('readyButton').addEventListener('click', () => {
+      console.log("Clicked");
     });
 
     // Handle window resize
