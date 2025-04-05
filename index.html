@@ -6,8 +6,8 @@
     <title>Location-based AR with Manual Ball Placement</title>
     <!-- Import A-Frame -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
-    <!-- Import AR.js (location-based) -->
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <!-- Import AR.js (location-based) from a reliable CDN -->
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
     <!-- Import look-at component -->
     <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
     <style>
@@ -68,7 +68,7 @@
         This app uses your GPS location and camera to place AR objects in the
         real world.
       </p>
-      <p>You'll need to allow camera and location access.</p>
+      <p>Please allow camera and location access.</p>
       <button id="startButton">Start AR Experience</button>
     </div>
 
@@ -84,7 +84,7 @@
       <a-camera gps-camera rotation-reader></a-camera>
     </a-scene>
 
-    <!-- Status Info and Button to Place Object -->
+    <!-- Status Info and Place Object Button -->
     <div id="statusInfo" class="hidden">Initializing...</div>
     <button id="placeObjectButton" class="hidden">Place Ball Here</button>
 
@@ -96,27 +96,23 @@
           if (!cameraEl) return;
           const cameraObj = cameraEl.object3D;
           const objectObj = this.el.object3D;
-
           // Get world positions.
           const camPosition = new THREE.Vector3();
           cameraObj.getWorldPosition(camPosition);
           const objPosition = new THREE.Vector3();
           objectObj.getWorldPosition(objPosition);
-
-          // Compute the normalized vector from the camera to the object.
+          // Calculate the direction vector from camera to object.
           const directionToObject = new THREE.Vector3()
             .subVectors(objPosition, camPosition)
             .normalize();
-
-          // Get the camera's forward vector (A-Frame cameras face -Z by default).
-          const cameraForward = new THREE.Vector3(0, 0, -1);
-          cameraForward.applyQuaternion(cameraObj.quaternion).normalize();
-
-          // Calculate angle between camera forward vector and direction to object.
+          // Camera faces -Z by default.
+          const cameraForward = new THREE.Vector3(0, 0, -1)
+            .applyQuaternion(cameraObj.quaternion)
+            .normalize();
+          // Compute angle between camera's forward and the direction to the object.
           const angle = cameraForward.angleTo(directionToObject);
           const threshold = THREE.MathUtils.degToRad(15); // 15° threshold
-
-          // Set visibility based on whether the object is within the threshold.
+          // Set visibility: true if within threshold, false otherwise.
           this.el.setAttribute("visible", angle < threshold);
         },
       });
@@ -137,7 +133,7 @@
         return "geolocation" in navigator;
       }
 
-      // Get current position as a Promise
+      // Get current position (Promise-based)
       function getCurrentPosition() {
         return new Promise((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(
@@ -146,9 +142,7 @@
               currentLng = position.coords.longitude;
               resolve(position);
             },
-            (error) => {
-              reject(error);
-            },
+            (error) => reject(error),
             { enableHighAccuracy: true, maximumAge: 0, timeout: 27000 }
           );
         });
@@ -163,46 +157,41 @@
 
         getCurrentPosition()
           .then((position) => {
-            statusInfo.textContent = `Location found: ${position.coords.latitude.toFixed(
+            statusInfo.textContent = `Location: ${position.coords.latitude.toFixed(
               6
             )}, ${position.coords.longitude.toFixed(6)}`;
-
             // For simulation/testing: set gps-camera simulation values.
             const camera = document.querySelector("a-camera");
             camera.setAttribute("gps-camera", {
               simulateLatitude: position.coords.latitude,
               simulateLongitude: position.coords.longitude,
             });
-
             // Show the button for manual ball placement.
             placeObjectButton.classList.remove("hidden");
-            // Start watching for position updates.
+            // Start watching the user's position.
             watchPosition();
           })
           .catch((error) => {
-            statusInfo.textContent = `Error getting location: ${error.message}`;
-            console.error("Error getting location:", error);
+            statusInfo.textContent = `Error: ${error.message}`;
+            console.error(error);
           });
       }
 
-      // Create an AR object (a ball with a text label) at specified GPS coordinates.
+      // Create an AR object (ball with a label) at given GPS coordinates.
       function createARObject(lat, lng, label, color = "red") {
         const entity = document.createElement("a-entity");
-        // Set the GPS location using AR.js attribute.
+        // Set GPS location using AR.js attribute.
         entity.setAttribute(
           "gps-entity-place",
           `latitude: ${lat}; longitude: ${lng};`
         );
-
-        // Attach our custom visibility-check component.
+        // Attach custom component for visibility control.
         entity.setAttribute("visibility-check", "");
-
         // Create a sphere (the ball).
         const sphere = document.createElement("a-sphere");
         sphere.setAttribute("radius", "0.5");
         sphere.setAttribute("color", color);
         sphere.setAttribute("opacity", "0.8");
-
         // Create a text label.
         const textEntity = document.createElement("a-text");
         textEntity.setAttribute("value", label);
@@ -210,15 +199,11 @@
         textEntity.setAttribute("scale", "2 2 2");
         textEntity.setAttribute("color", color);
         textEntity.setAttribute("position", "0 1 0");
-
         // Append sphere and text to the container entity.
         entity.appendChild(sphere);
         entity.appendChild(textEntity);
-
         // Add the entity to the A-Frame scene.
         document.querySelector("a-scene").appendChild(entity);
-
-        // Log the coordinates.
         console.log(`Ball placed at: Latitude ${lat}, Longitude ${lng}`);
         return entity;
       }
@@ -236,34 +221,32 @@
             )} (Accuracy: ${position.coords.accuracy.toFixed(1)}m)`;
           },
           (error) => {
-            console.error("Error watching position:", error);
-            statusInfo.textContent = `Position tracking error: ${error.message}`;
+            console.error(error);
+            statusInfo.textContent = `Error: ${error.message}`;
           },
           { enableHighAccuracy: true, maximumAge: 0, timeout: 27000 }
         );
       }
 
-      // Place ball at the user's current location when the button is pressed.
+      // Place ball at current location when button is pressed.
       function placeBallAtCurrentLocation() {
         if (currentLat === 0 && currentLng === 0) {
           statusInfo.textContent = "Location not available yet. Please wait.";
           return;
         }
-        // Optionally, choose a random color for the ball.
         const colors = ["red", "blue", "green", "yellow", "purple", "orange"];
         const randomColor = colors[Math.floor(Math.random() * colors.length)];
         const timestamp = new Date().toLocaleTimeString();
-        // Create the AR object (ball) and log its coordinates.
         createARObject(
           currentLat,
           currentLng,
           `Placed at ${timestamp}`,
           randomColor
         );
-        statusInfo.textContent = `Ball placed at your location (${timestamp})`;
+        statusInfo.textContent = `Ball placed at ${timestamp}`;
       }
 
-      // Event listeners for starting AR and placing the ball.
+      // Event listeners
       startButton.addEventListener("click", () => {
         if (!checkGeolocation()) {
           statusInfo.classList.remove("hidden");
