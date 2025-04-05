@@ -24,7 +24,34 @@
       border-radius: 8px;
     }
 
-    #moveButton {
+    #moveLeft {
+      padding: 10px;
+      background-color: #2980b9;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    #moveRight {
+      padding: 10px;
+      background-color: #2980b9;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    #moveDown {
+      padding: 10px;
+      background-color: #2980b9;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    #moveUp {
       padding: 10px;
       background-color: #2980b9;
       color: white;
@@ -41,7 +68,16 @@
 
 <body>
   <div id="overlay">
-    <button id="moveButton">Move Object</button>
+    <button id="moveLeft">Move Left</button>
+  </div>
+  <div id="overlay">
+    <button id="moveRight">Move Right</button>
+  </div>
+  <div id="overlay">
+    <button id="moveDown">Move Down</button>
+  </div>
+  <div id="overlay">
+    <button id="moveUp">Move Up</button>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
   <script>
@@ -119,7 +155,25 @@
     });
 
     // Event listener for the move button
-    document.getElementById('moveButton').addEventListener('click', () => {
+    document.getElementById('moveLeft').addEventListener('click', () => {
+      // Adjust the sphere's position
+      sphere.position.x += 1;
+      sphere.position.y += 1;
+      sphere.position.z += 1;
+    });
+    document.getElementById('moveRight').addEventListener('click', () => {
+      // Adjust the sphere's position
+      sphere.position.x += 1;
+      sphere.position.y += 1;
+      sphere.position.z += 1;
+    });
+    document.getElementById('moveUp').addEventListener('click', () => {
+      // Adjust the sphere's position
+      sphere.position.x += 1;
+      sphere.position.y += 1;
+      sphere.position.z += 1;
+    });
+    document.getElementById('moveDown').addEventListener('click', () => {
       // Adjust the sphere's position
       sphere.position.x += 1;
       sphere.position.y += 1;
