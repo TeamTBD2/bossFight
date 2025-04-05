@@ -103,7 +103,6 @@
       // CURRENT POSITION VARIABLES
       let currentLat = null;
       let currentLng = null;
-      let currentAlt = 0;
       let watchId = null;
 
       // GEOLOCATION FUNCTIONS
@@ -136,9 +135,17 @@
           cameraObj.getWorldPosition(camPosition);
           objectObj.getWorldPosition(objPosition);
 
-          // Always show within 50 meters
-          const distance = camPosition.distanceTo(objPosition);
-          this.el.setAttribute("visible", distance < 50);
+          // Calculate direction vectors
+          const directionToObject = new THREE.Vector3()
+            .subVectors(objPosition, camPosition)
+            .normalize();
+          const cameraForward = new THREE.Vector3(0, 0, -1)
+            .applyQuaternion(cameraObj.quaternion)
+            .normalize();
+
+          // Show if within 45° viewing angle
+          const angle = cameraForward.angleTo(directionToObject);
+          this.el.setAttribute("visible", angle < THREE.MathUtils.degToRad(45));
         },
       });
 
@@ -148,28 +155,72 @@
         entity.setAttribute("gps-entity-place", {
           latitude: lat,
           longitude: lng,
-          altitude: currentAlt + 1.6,
         });
         entity.setAttribute("visibility-check", "");
 
-        // Create visible sphere
+        // Create properly sized sphere
         const sphere = document.createElement("a-sphere");
-        sphere.setAttribute("radius", 3);
+        sphere.setAttribute("radius", 0.5); // 0.5 meters diameter
         sphere.setAttribute("color", "#FF0000");
-        sphere.setAttribute("material", "shader: flat;");
+        sphere.setAttribute("material", "shader: flat; metalness: 0.5;");
 
-        // Pulse animation
+        // Subtle pulse animation
         sphere.setAttribute("animation", {
           property: "scale",
           from: "1 1 1",
-          to: "1.5 1.5 1.5",
-          dur: 1500,
+          to: "1.2 1.2 1.2",
+          dur: 2000,
           loop: true,
           easing: "easeInOutSine",
         });
 
         entity.appendChild(sphere);
         document.querySelector("a-scene").appendChild(entity);
+      }
+
+      // CALCULATE FORWARD POSITION
+      function getForwardPosition(distance) {
+        const camera = document.querySelector("[gps-camera]");
+        const position = new THREE.Vector3();
+        const rotation = new THREE.Quaternion();
+        const cameraObj = camera.object3D;
+
+        cameraObj.getWorldPosition(position);
+        cameraObj.getWorldQuaternion(rotation);
+
+        // Calculate forward direction
+        const forward = new THREE.Vector3(0, 0, -1)
+          .applyQuaternion(rotation)
+          .multiplyScalar(distance);
+
+        return position.add(forward);
+      }
+
+      // CONVERT TO GPS COORDINATES
+      function localToGPS(position) {
+        const gpsCamera =
+          document.querySelector("[gps-camera]").components["gps-camera"];
+        return gpsCamera.localToGPS(position);
+      }
+
+      // PLACEMENT FUNCTION
+      function placeBallAtCurrentLocation() {
+        if (!currentLat || !currentLng) {
+          statusInfo.textContent = "Waiting for location...";
+          return;
+        }
+
+        try {
+          // Calculate position 10 meters ahead
+          const forwardPos = getForwardPosition(10);
+          const gpsPosition = localToGPS(forwardPos);
+
+          createARObject(gpsPosition.latitude, gpsPosition.longitude);
+          statusInfo.textContent = "Ball placed 10 meters ahead!";
+        } catch (error) {
+          statusInfo.textContent = "Error placing ball";
+          console.error(error);
+        }
       }
 
       // INITIALIZATION FUNCTION
@@ -182,48 +233,32 @@
           const position = await getCurrentPosition();
           currentLat = position.coords.latitude;
           currentLng = position.coords.longitude;
-          currentAlt = position.coords.altitude || 0;
 
-          statusInfo.textContent = `Location acquired! Accuracy: ${position.coords.accuracy.toFixed(
-            1
-          )}m`;
+          // Initialize camera with simulation
+          const camera = document.querySelector("a-camera");
+          camera.setAttribute("gps-camera", {
+            simulateLatitude: currentLat,
+            simulateLongitude: currentLng,
+            positionMinAccuracy: 5,
+          });
+
           placeObjectButton.classList.remove("hidden");
-
-          // Start watching position
           watchId = navigator.geolocation.watchPosition(
             (position) => {
               currentLat = position.coords.latitude;
               currentLng = position.coords.longitude;
-              currentAlt = position.coords.altitude || 0;
               statusInfo.textContent = `Updated: ${currentLat.toFixed(
                 6
-              )}, ${currentLng.toFixed(
-                6
-              )} (Acc: ${position.coords.accuracy.toFixed(1)}m)`;
+              )}, ${currentLng.toFixed(6)}`;
             },
             (error) => {
               statusInfo.textContent = `Location error: ${error.message}`;
             },
-            {
-              enableHighAccuracy: true,
-              maximumAge: 0,
-              timeout: 15000,
-            }
+            { enableHighAccuracy: true }
           );
         } catch (error) {
           statusInfo.textContent = `Error: ${error.message}`;
         }
-      }
-
-      // PLACEMENT FUNCTION
-      function placeBallAtCurrentLocation() {
-        if (!currentLat || !currentLng) {
-          statusInfo.textContent = "Waiting for location...";
-          return;
-        }
-
-        createARObject(currentLat, currentLng);
-        statusInfo.textContent = `Ball placed at ${new Date().toLocaleTimeString()}`;
       }
 
       // EVENT LISTENERS
