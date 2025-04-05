@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>WebXR AR Camera Feed</title>
+  <title>WebXR AR Camera Feed with GPS</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
@@ -26,7 +26,7 @@
 
   <script type="module">
     import * as THREE from 'https://cdn.skypack.dev/three@0.150.1';
-    import { ARButton } from './src/main.js';
+    import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/webxr/ARButton.js';
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera();
@@ -45,12 +45,50 @@
     const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
     const sphere = new THREE.Mesh(geometry, material);
 
-    sphere.position.set(0, 0, -0.5); // half a meter in front of the camera
     scene.add(sphere);
 
     // Lighting
     const light = new THREE.HemisphereLight(0xffffff, 0x444444);
     scene.add(light);
+
+    // Get the user's current location (latitude, longitude, and altitude)
+    function getCurrentLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function (position) {
+          const latitude = position.coords.latitude;
+          const longitude = position.coords.longitude;
+          const altitude = position.coords.altitude || 0; // If available
+
+          // Example target lat/long for the object (can replace with your desired lat/long)
+          const targetLat = 53.4697234; // Example latitude
+          const targetLon = -2.2340321; // Example longitude
+
+          // Convert lat/lon to 3D position relative to user
+          const distance = 50; // distance in meters
+
+          const userLat = latitude;
+          const userLon = longitude;
+
+          // Convert lat/lon to radians
+          const latRad = (Math.PI / 180) * userLat;
+          const lonRad = (Math.PI / 180) * userLon;
+
+          // Convert target lat/lon to radians
+          const targetLatRad = (Math.PI / 180) * targetLat;
+          const targetLonRad = (Math.PI / 180) * targetLon;
+
+          // Calculate 3D position (very simplified for demo purposes)
+          const dx = (targetLonRad - lonRad) * distance;
+          const dy = (targetLatRad - latRad) * distance;
+
+          // Set position of the sphere (relative to the user's position)
+          sphere.position.set(dx, 0, dy);
+        });
+      }
+    }
+
+    // Call to get current location
+    getCurrentLocation();
 
     function animate() {
       renderer.setAnimationLoop(() => {
