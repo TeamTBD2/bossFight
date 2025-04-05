@@ -50,6 +50,11 @@
       font-size: 14px;
       min-width: 90px;
       width: auto;
+      height: 44px;
+      max-height: 44px;
+      line-height: 1;
+      flex: 0 0 auto;
+      align-self: center;
     }
 
     button:active {
@@ -70,6 +75,7 @@
       cursor: pointer;
       z-index: 999;
       width: auto;
+      height: auto;
     }
 
     /* Optional: add some styling to make specific buttons stand out */
@@ -165,6 +171,13 @@
       renderer.xr.setSession(session);
       arButton.textContent = 'Stop AR';
       arButton.style.display = 'none'; // Hide the AR button when in AR mode
+
+      // Ensure buttons keep their height in AR mode
+      const buttons = document.querySelectorAll('.control-panel button');
+      buttons.forEach(button => {
+        button.style.height = '44px';
+        button.style.maxHeight = '44px';
+      });
     }
 
     // Function called when the AR session ends
