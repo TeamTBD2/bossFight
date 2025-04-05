@@ -26,6 +26,7 @@
       border-radius: 5px;
       font-size: 12px;
       pointer-events: none;
+      z-index: 100;
     }
   </style>
 </head>
@@ -50,6 +51,8 @@
     let currentLat = 0;
     let currentLon = 0;
     let infoElement = document.getElementById('info');
+    let deviceOrientationPermission = false;
+    let compassHeading = 0;
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera();
@@ -67,30 +70,54 @@
       domOverlay: { root: document.body }
     }));
 
+    // Create a container for our objects
+    const container = new THREE.Group();
+    scene.add(container);
+
     // Create a red sphere to mark the target location
-    const geometry = new THREE.SphereGeometry(0.5, 32, 32); // Larger radius to be more visible
+    const geometry = new THREE.SphereGeometry(0.5, 32, 32);
     const material = new THREE.MeshStandardMaterial({
       color: 0xff0000,
       transparent: true,
       opacity: 0.8
     });
     const sphere = new THREE.Mesh(geometry, material);
-    scene.add(sphere);
+    container.add(sphere);
 
     // Add a marker for current position
     const markerGeometry = new THREE.CylinderGeometry(0.2, 0.2, 0.1, 32);
     const markerMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
     const marker = new THREE.Mesh(markerGeometry, markerMaterial);
-    scene.add(marker);
-    marker.position.set(0, -0.05, -1); // 1 meter in front, slightly below eye level
+    container.add(marker);
+    marker.position.set(0, -0.05, 0);
 
-    // Arrow pointing to target
-    const arrowGeometry = new THREE.ConeGeometry(0.1, 0.3, 32);
-    const arrowMaterial = new THREE.MeshStandardMaterial({ color: 0x0000ff });
-    const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
-    arrow.rotation.x = Math.PI / 2; // Point forward
-    scene.add(arrow);
-    arrow.position.set(0, 0.2, -1); // Above the marker
+    // Create a more visible arrow pointing to target
+    const arrowGroup = new THREE.Group();
+    container.add(arrowGroup);
+
+    // Arrow body
+    const arrowBodyGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.5, 12);
+    const arrowBodyMaterial = new THREE.MeshStandardMaterial({ color: 0x0066ff });
+    const arrowBody = new THREE.Mesh(arrowBodyGeometry, arrowBodyMaterial);
+    arrowBody.rotation.x = Math.PI / 2;
+    arrowBody.position.set(0, 0, -0.25);
+    arrowGroup.add(arrowBody);
+
+    // Arrow head
+    const arrowHeadGeometry = new THREE.ConeGeometry(0.1, 0.2, 12);
+    const arrowHeadMaterial = new THREE.MeshStandardMaterial({ color: 0x0044ff });
+    const arrowHead = new THREE.Mesh(arrowHeadGeometry, arrowHeadMaterial);
+    arrowHead.rotation.x = Math.PI / 2;
+    arrowHead.position.set(0, 0, -0.6);
+    arrowGroup.add(arrowHead);
+
+    arrowGroup.position.set(0, 0.3, 0);
+
+    // Line to target
+    const lineMaterial = new THREE.LineBasicMaterial({ color: 0x00aaff, linewidth: 2 });
+    const lineGeometry = new THREE.BufferGeometry();
+    const line = new THREE.Line(lineGeometry, lineMaterial);
+    container.add(line);
 
     // Lighting
     const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
@@ -126,15 +153,43 @@
       const x = Math.cos(φ1) * Math.sin(φ2) -
         Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
 
-      return Math.atan2(y, x);
+      let bearing = Math.atan2(y, x);
+      // Convert to 0-360 degrees
+      bearing = (bearing * 180 / Math.PI + 360) % 360;
+      // Convert back to radians
+      return bearing * Math.PI / 180;
     }
 
-    // Helper function to convert bearing to x,z coordinates
-    function bearingToXZ(bearing, distance) {
-      return {
-        x: Math.sin(bearing) * distance,
-        z: Math.cos(bearing) * -distance // Negative z is "forward" in Three.js
-      };
+    // Request device orientation permission on iOS 13+
+    function requestDeviceOrientation() {
+      if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission()
+          .then(permissionState => {
+            if (permissionState === 'granted') {
+              deviceOrientationPermission = true;
+              window.addEventListener('deviceorientation', handleOrientation);
+            }
+          })
+          .catch(console.error);
+      } else {
+        // Handle regular non-iOS 13+ devices
+        deviceOrientationPermission = true;
+        window.addEventListener('deviceorientation', handleOrientation);
+      }
+    }
+
+    // Handle device orientation data
+    function handleOrientation(event) {
+      // Get device compass heading
+      if (event.webkitCompassHeading) {
+        // For iOS devices
+        compassHeading = event.webkitCompassHeading * Math.PI / 180;
+      } else if (event.alpha) {
+        // For Android devices
+        // Convert to radians and adjust for compass heading
+        compassHeading = (360 - event.alpha) * Math.PI / 180;
+      }
     }
 
     // Get user's geolocation
@@ -143,6 +198,13 @@
         updateInfo("Geolocation is not supported by your browser");
         return;
       }
+
+      // Try to get device orientation permission
+      document.addEventListener('click', () => {
+        if (!deviceOrientationPermission) {
+          requestDeviceOrientation();
+        }
+      }, { once: true });
 
       navigator.geolocation.watchPosition(
         (position) => {
@@ -153,26 +215,32 @@
           const distance = calculateDistance(currentLat, currentLon, TARGET_LAT, TARGET_LON);
           const bearing = calculateBearing(currentLat, currentLon, TARGET_LAT, TARGET_LON);
 
-          // Convert to x,z coordinates
-          const coords = bearingToXZ(bearing, distance);
-
           // Update sphere position (adjusted for reasonable AR viewing)
           // If the actual distance is too large, scale it down
           const maxDistance = 50; // Maximum distance in meters to display in AR space
           const scaleFactor = Math.min(1, maxDistance / distance);
           const scaledDistance = distance * scaleFactor;
-          const scaledCoords = bearingToXZ(bearing, scaledDistance);
 
-          sphere.position.set(scaledCoords.x, 0, scaledCoords.z);
+          // Position sphere relative to user
+          // Convert bearing to THREE.js coordinates
+          sphere.position.x = Math.sin(bearing) * scaledDistance;
+          sphere.position.z = -Math.cos(bearing) * scaledDistance;
 
-          // Update arrow to point to target
-          arrow.lookAt(scaledCoords.x, 0.2, scaledCoords.z);
+          // Update arrow to point to sphere
+          arrowGroup.lookAt(sphere.position.x, arrowGroup.position.y, sphere.position.z);
+
+          // Update line points to draw between marker and target
+          const linePoints = [
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(sphere.position.x, 0, sphere.position.z)
+          ];
+          lineGeometry.setFromPoints(linePoints);
 
           // Update info display
           updateInfo(`Current: ${currentLat.toFixed(6)}, ${currentLon.toFixed(6)}<br>
                      Target: ${TARGET_LAT.toFixed(6)}, ${TARGET_LON.toFixed(6)}<br>
                      Distance: ${(distance).toFixed(1)}m<br>
-                     Direction: ${(bearing * 180 / Math.PI).toFixed(1)}°<br>
+                     Bearing: ${(bearing * 180 / Math.PI).toFixed(1)}°<br>
                      ${distance > maxDistance ? '(Distance scaled down for visualization)' : ''}`);
         },
         (error) => {
