@@ -27,7 +27,7 @@
       z-index: 999;
     }
 
-    .control-panel {
+    /* .control-panel {
       background-color: rgba(0, 0, 0, 0.5);
       border-radius: 10px;
       padding: 15px;
@@ -40,6 +40,21 @@
       max-width: 90%;
       max-height: 10%;
       height: auto;
+    } */
+
+    .control-panel {
+      background-color: rgba(0, 0, 0, 0.5);
+      border-radius: 10px;
+      padding: 15px;
+      pointer-events: auto;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(2, 44px);
+      gap: 8px;
+      width: auto;
+      max-width: 90%;
+      height: auto;
+      max-height: 120px;
     }
 
     .button-wrapper {
