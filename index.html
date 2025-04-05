@@ -27,6 +27,18 @@
       font-size: 200%;
       margin: 10px;
     }
+
+    /* New style for the coordinate display */
+    #coordinateDisplay {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      padding: 10px;
+      font-size: 150%;
+      z-index: 2;
+    }
   </style>
   <script type='module' src='src/main.js'></script>
 </head>
@@ -37,6 +49,8 @@
     <div><input id="fakeLon" placeholder="Fake Lon" /></div>
     <div><button id="setFakeLoc">Set Fake Location!</button></div>
   </div>
+  <!-- New div to display coordinates -->
+  <div id="coordinateDisplay">Coordinates will appear here.</div>
 </body>
 
 </html>

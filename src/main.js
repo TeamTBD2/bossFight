@@ -23,22 +23,24 @@ let firstLocation = true;
 
 const deviceOrientationControls = new LocAR.DeviceOrientationControls(camera);
 
-locar.on("gpsupdate", (pos, distMoved) => {
-  if (firstLocation) {
+// Get a reference to the new coordinate display div
+const coordDisplay = document.getElementById("coordinateDisplay");
 
+locar.on("gpsupdate", (pos, distMoved) => {
+  const userLat = pos.coords.latitude;
+  const userLon = pos.coords.longitude;
+  // Box properties are defined with latDis: 0 and lonDis: 0.00005.
+  const boxLat = userLat + 0;
+  const boxLon = userLon + 0.00005;
+
+  // Update the coordinate display div with current user and box coordinates.
+  coordDisplay.innerHTML = `
+    <strong>User Coordinates:</strong> Latitude: ${userLat.toFixed(6)}, Longitude: ${userLon.toFixed(6)}<br>
+    <strong>Box Coordinates:</strong> Latitude: ${boxLat.toFixed(6)}, Longitude: ${boxLon.toFixed(6)}
+  `;
+
+  if (firstLocation) {
     const boxProps = [{
-      latDis: 0.00005,
-      lonDis: 0,
-      colour: 0xff0000
-    }, {
-      latDis: -0.00005,
-      lonDis: 0,
-      colour: 0xffff00
-    }, {
-      latDis: 0,
-      lonDis: -0.00005,
-      colour: 0x00ffff
-    }, {
       latDis: 0,
       lonDis: 0.00005,
       colour: 0x00ff00
