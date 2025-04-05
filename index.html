@@ -2,13 +2,12 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>AR with Three.js – Concept 1: Fixed Object Relative to Camera</title>
+    <title>AR with Three.js – Concept 2: Place Ball at Specific Location</title>
     <style>
       body {
         margin: 0;
         overflow: hidden;
       }
-      /* Fullscreen video background */
       video {
         position: absolute;
         top: 0;
@@ -18,13 +17,23 @@
         object-fit: cover;
         z-index: -1;
       }
+      #placeButton {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
+        padding: 10px 20px;
+        font-size: 16px;
+      }
     </style>
   </head>
   <body>
     <video id="video" autoplay playsinline muted></video>
+    <button id="placeButton">Place Ball Here</button>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-      // Set up the video background from the rear camera
+      // Set up the video background
       const video = document.getElementById("video");
       navigator.mediaDevices
         .getUserMedia({ video: { facingMode: "environment" }, audio: false })
@@ -35,7 +44,6 @@
 
       // Create the Three.js scene and camera
       const scene = new THREE.Scene();
-      // (We use a PerspectiveCamera even though we update its world position via geolocation.)
       const camera = new THREE.PerspectiveCamera(
         75,
         window.innerWidth / window.innerHeight,
@@ -44,7 +52,6 @@
       );
       scene.add(camera);
 
-      // Create the renderer with a transparent background so the video shows through
       const renderer = new THREE.WebGLRenderer({
         alpha: true,
         antialias: true,
@@ -52,28 +59,16 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
       document.body.appendChild(renderer.domElement);
 
-      // Create a red sphere geometry that will be attached to the camera.
-      // By attaching it as a child of the camera at position (0, 0, -5),
-      // it will always render 5 units in front of the camera.
-      const sphereGeometry = new THREE.SphereGeometry(0.5, 16, 16);
-      const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-      const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-      sphere.position.set(0, 0, -5);
-      camera.add(sphere);
-
       // --- Geolocation Setup ---
-      // We use the first geolocation reading as our "origin."
       let origin = null;
       let currentPosition = null;
-      // A simple function to convert differences in latitude and longitude to approximate meters.
-      // (1° latitude ~ 111320 m; longitude scaling is adjusted by the cosine of the latitude)
       function toMeters(latDiff, lonDiff, lat) {
         const metersPerLat = 111320;
         const metersPerLon = 111320 * Math.cos((lat * Math.PI) / 180);
         return { x: lonDiff * metersPerLon, z: latDiff * metersPerLat };
       }
 
-      // Get the initial position (origin)
+      // Set the origin from the first geolocation reading.
       navigator.geolocation.getCurrentPosition(
         (position) => {
           origin = {
@@ -87,7 +82,7 @@
         }
       );
 
-      // Watch for position changes and update the camera’s world position accordingly.
+      // Update current position and the camera’s position.
       navigator.geolocation.watchPosition(
         (position) => {
           currentPosition = {
@@ -98,8 +93,6 @@
             const latDiff = currentPosition.lat - origin.lat;
             const lonDiff = currentPosition.lon - origin.lon;
             const pos = toMeters(latDiff, lonDiff, origin.lat);
-            // Update the camera’s position in the Three.js scene.
-            // (Here we update the x and z coordinates; y could be updated if altitude data is available.)
             camera.position.set(pos.x, 0, pos.z);
           }
         },
@@ -108,6 +101,28 @@
         }
       );
 
+      // When the user taps the button, place a blue ball at the current location.
+      document.getElementById("placeButton").addEventListener("click", () => {
+        if (!origin || !currentPosition) {
+          alert("Waiting for geolocation…");
+          return;
+        }
+        // Compute the ball’s position relative to the origin.
+        const latDiff = currentPosition.lat - origin.lat;
+        const lonDiff = currentPosition.lon - origin.lon;
+        const pos = toMeters(latDiff, lonDiff, origin.lat);
+
+        // Create the blue sphere (the ball) at that position.
+        const ballGeometry = new THREE.SphereGeometry(0.5, 16, 16);
+        const ballMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
+        const ball = new THREE.Mesh(ballGeometry, ballMaterial);
+        ball.position.set(pos.x, 0, pos.z);
+        scene.add(ball);
+
+        // Optionally hide the button after placing the ball.
+        document.getElementById("placeButton").style.display = "none";
+      });
+
       // Render loop
       function animate() {
         requestAnimationFrame(animate);
@@ -115,7 +130,7 @@
       }
       animate();
 
-      // Adjust renderer size on window resize
+      // Handle window resize
       window.addEventListener("resize", () => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
