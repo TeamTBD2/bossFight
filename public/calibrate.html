@@ -129,8 +129,6 @@
 </head>
 
 <body>
-
-
   <div id="overlay">
     <div class="control-panel">
       <button id="readyButton">Ready</button>
@@ -157,43 +155,39 @@
 
   <button id="arButton">Start AR</button>
 
-  <!-- Add the WebXR Polyfill script -->
   <script src="https://cdn.jsdelivr.net/npm/webxr-polyfill"></script>
-  <script>
-    const polyfill = new WebXRPolyfill();
-  </script>
-
   <script type="module">
-    import * as THREE from 'https://cdn.skypack.dev/three@0.150.1';
+    import * as THREE from "https://cdn.skypack.dev/three@0.136.0";
+    import { OrbitControls } from "https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/OrbitControls.js";
+    import { HolographicDragon } from "./HolographicDragon.js";
 
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    let scene, camera, renderer, dragon;
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    // Set up the basic scene
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.xr.enabled = true;
     document.body.appendChild(renderer.domElement);
 
-    // Create a red sphere
-    const geometry = new THREE.SphereGeometry(0.1, 32, 32);
-    const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
-    const sphere = new THREE.Mesh(geometry, material);
-    sphere.position.set(0, 0, -0.5); // position the sphere half a meter in front of the camera
-    scene.add(sphere);
-
-    // Lighting
-    const light = new THREE.HemisphereLight(0xffffff, 0x444444);
-    scene.add(light);
-
-    // Add directional light for better visibility
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-    directionalLight.position.set(0, 5, 0);
+    // Add lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(1, 1, 2);
     scene.add(directionalLight);
 
-    // AR Button functionality
-    const arButton = document.getElementById('arButton');
+    // Add dragon model
+    async function loadDragon() {
+      const dragonInstance = new HolographicDragon();
+      dragon = await dragonInstance.load();
+      dragon.model.position.set(0, -1, -10);
+      scene.add(dragon.model);
+    }
 
-    // Check if XR is supported
+    // Add AR Button functionality
+    const arButton = document.getElementById('arButton');
     if ('xr' in navigator) {
       navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
         if (supported) {
@@ -209,31 +203,27 @@
       arButton.disabled = true;
     }
 
-    // Function to start the AR session
     function startAR() {
       const sessionInit = {
         optionalFeatures: ['dom-overlay'],
-        domOverlay: { root: document.getElementById('overlay') }
+        domOverlay: { root: document.getElementById('overlay') },
       };
       navigator.xr.requestSession('immersive-ar', sessionInit).then(onSessionStarted);
     }
 
-    // Function called when the AR session starts
     function onSessionStarted(session) {
       session.addEventListener('end', onSessionEnded);
       renderer.xr.setReferenceSpaceType('local');
       renderer.xr.setSession(session);
       arButton.textContent = 'Stop AR';
-      arButton.style.display = 'none'; // Hide the AR button when in AR mode
+      arButton.style.display = 'none'; // Hide the AR button in AR mode
     }
 
-    // Function called when the AR session ends
     function onSessionEnded() {
       arButton.textContent = 'Start AR';
-      arButton.style.display = 'block'; // Show the AR button when AR mode ends
+      arButton.style.display = 'block'; // Show the AR button when AR ends
     }
 
-    // Event listener for the AR button
     arButton.addEventListener('click', () => {
       if (renderer.xr.getSession() === null) {
         startAR();
@@ -242,35 +232,31 @@
       }
     });
 
-    // Movement controls
-    const moveDistance = 0.1; // Distance to move per button press
+    // Add movement controls
+    const moveDistance = 0.5; // movement distance per button press
 
     document.getElementById('moveForward').addEventListener('click', () => {
-      sphere.position.z -= moveDistance;
+      dragon.model.position.z -= moveDistance;
     });
 
     document.getElementById('moveBackward').addEventListener('click', () => {
-      sphere.position.z += moveDistance;
+      dragon.model.position.z += moveDistance;
     });
 
     document.getElementById('moveLeft').addEventListener('click', () => {
-      sphere.position.x -= moveDistance;
+      dragon.model.position.x -= moveDistance;
     });
 
     document.getElementById('moveRight').addEventListener('click', () => {
-      sphere.position.x += moveDistance;
+      dragon.model.position.x += moveDistance;
     });
 
     document.getElementById('moveUp').addEventListener('click', () => {
-      sphere.position.y += moveDistance;
+      dragon.model.position.y += moveDistance;
     });
 
     document.getElementById('moveDown').addEventListener('click', () => {
-      sphere.position.y -= moveDistance;
-    });
-
-    document.getElementById('readyButton').addEventListener('click', () => {
-      console.log("Clicked");
+      dragon.model.position.y -= moveDistance;
     });
 
     // Handle window resize
@@ -282,12 +268,14 @@
 
     // Animation loop
     function animate() {
+      requestAnimationFrame(animate);
+      if (dragon) dragon.update();
       renderer.setAnimationLoop(() => {
         renderer.render(scene, camera);
       });
     }
 
-    animate();
+    loadDragon().then(animate);
   </script>
 </body>
 
