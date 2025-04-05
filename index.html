@@ -100,12 +100,28 @@
     <button id="placeObjectButton" class="hidden">Place Ball Here</button>
 
     <script>
-      // CURRENT POSITION WITH DEFAULT VALUES
+      // CURRENT POSITION VARIABLES
       let currentLat = null;
       let currentLng = null;
-      let currentAlt = 0; // Add altitude support
+      let currentAlt = 0;
+      let watchId = null;
 
-      // IMPROVED VISIBILITY CHECK COMPONENT
+      // GEOLOCATION FUNCTIONS
+      function getCurrentPosition() {
+        return new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(
+            (position) => resolve(position),
+            (error) => reject(error),
+            {
+              enableHighAccuracy: true,
+              timeout: 15000,
+              maximumAge: 0,
+            }
+          );
+        });
+      }
+
+      // VISIBILITY CHECK COMPONENT
       AFRAME.registerComponent("visibility-check", {
         tick: function () {
           const cameraEl = document.querySelector("[gps-camera]");
@@ -122,45 +138,25 @@
 
           // Always show within 50 meters
           const distance = camPosition.distanceTo(objPosition);
-          if (distance < 50) {
-            this.el.setAttribute("visible", true);
-            return;
-          }
-
-          // Calculate visibility angle (90° threshold)
-          const cameraDirection = new THREE.Vector3(0, 0, -1)
-            .applyQuaternion(cameraObj.quaternion)
-            .normalize();
-          const objectDirection = new THREE.Vector3()
-            .subVectors(objPosition, camPosition)
-            .normalize();
-
-          const angle = cameraDirection.angleTo(objectDirection);
-          this.el.setAttribute("visible", angle < Math.PI / 2); // 90 degrees in radians
+          this.el.setAttribute("visible", distance < 50);
         },
       });
 
-      // IMPROVED OBJECT CREATION
+      // OBJECT CREATION FUNCTION
       function createARObject(lat, lng) {
         const entity = document.createElement("a-entity");
-
-        // Add altitude to prevent underground placement
         entity.setAttribute("gps-entity-place", {
           latitude: lat,
           longitude: lng,
-          altitude: currentAlt + 1.6, // Add 1.6m height offset
+          altitude: currentAlt + 1.6,
         });
-
         entity.setAttribute("visibility-check", "");
 
         // Create visible sphere
         const sphere = document.createElement("a-sphere");
         sphere.setAttribute("radius", 3);
         sphere.setAttribute("color", "#FF0000");
-        sphere.setAttribute(
-          "material",
-          "shader: flat; metalness: 0; roughness: 0;"
-        );
+        sphere.setAttribute("material", "shader: flat;");
 
         // Pulse animation
         sphere.setAttribute("animation", {
@@ -176,32 +172,7 @@
         document.querySelector("a-scene").appendChild(entity);
       }
 
-      // ENHANCED GEOLOCATION HANDLING
-      function watchPosition() {
-        return navigator.geolocation.watchPosition(
-          (position) => {
-            currentLat = position.coords.latitude;
-            currentLng = position.coords.longitude;
-            currentAlt = position.coords.altitude || 0;
-            statusInfo.textContent = `Location: ${currentLat.toFixed(
-              6
-            )}, ${currentLng.toFixed(
-              6
-            )} (Accuracy: ${position.coords.accuracy.toFixed(1)}m)`;
-          },
-          (error) => {
-            statusInfo.textContent = `Error: ${error.message}`;
-            console.error("Geolocation error:", error);
-          },
-          {
-            enableHighAccuracy: true,
-            maximumAge: 0,
-            timeout: 15000,
-          }
-        );
-      }
-
-      // MODIFIED INITIALIZATION
+      // INITIALIZATION FUNCTION
       async function initAR() {
         try {
           startScreen.classList.add("hidden");
@@ -213,22 +184,38 @@
           currentLng = position.coords.longitude;
           currentAlt = position.coords.altitude || 0;
 
-          // Initialize camera with simulated position
-          const camera = document.querySelector("a-camera");
-          camera.setAttribute("gps-camera", {
-            simulateLatitude: currentLat,
-            simulateLongitude: currentLng,
-            positionMinAccuracy: 10,
-          });
-
+          statusInfo.textContent = `Location acquired! Accuracy: ${position.coords.accuracy.toFixed(
+            1
+          )}m`;
           placeObjectButton.classList.remove("hidden");
-          watchPosition();
+
+          // Start watching position
+          watchId = navigator.geolocation.watchPosition(
+            (position) => {
+              currentLat = position.coords.latitude;
+              currentLng = position.coords.longitude;
+              currentAlt = position.coords.altitude || 0;
+              statusInfo.textContent = `Updated: ${currentLat.toFixed(
+                6
+              )}, ${currentLng.toFixed(
+                6
+              )} (Acc: ${position.coords.accuracy.toFixed(1)}m)`;
+            },
+            (error) => {
+              statusInfo.textContent = `Location error: ${error.message}`;
+            },
+            {
+              enableHighAccuracy: true,
+              maximumAge: 0,
+              timeout: 15000,
+            }
+          );
         } catch (error) {
           statusInfo.textContent = `Error: ${error.message}`;
         }
       }
 
-      // SIMPLIFIED PLACEMENT FUNCTION
+      // PLACEMENT FUNCTION
       function placeBallAtCurrentLocation() {
         if (!currentLat || !currentLng) {
           statusInfo.textContent = "Waiting for location...";
@@ -239,7 +226,7 @@
         statusInfo.textContent = `Ball placed at ${new Date().toLocaleTimeString()}`;
       }
 
-      // INITIALIZE EVENT LISTENERS
+      // EVENT LISTENERS
       document.addEventListener("DOMContentLoaded", () => {
         startButton.addEventListener("click", initAR);
         placeObjectButton.addEventListener("click", placeBallAtCurrentLocation);
