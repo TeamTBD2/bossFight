@@ -68,10 +68,7 @@ locar.on("gpsupdate", (pos, distMoved) => {
     alert(`Got the initial location: longitude ${pos.coords.longitude}, latitude ${pos.coords.latitude}`);
 
     const boxProps = [
-      { latDis: 0.000005, lonDis: 0, colour: 0xff0000 },
-      { latDis: -0.000005, lonDis: 0, colour: 0xffff00 },
-      { latDis: 0, lonDis: -0.000005, colour: 0x00ffff },
-      { latDis: 0, lonDis: 0.000005, colour: 0x00ff00 }
+      { latDis: 0.000005, lonDis: 0, colour: 0xff0000 }
     ];
 
     const geom = new THREE.BoxGeometry(0.5, 0.5, 0.5);
