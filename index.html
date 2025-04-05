@@ -96,185 +96,85 @@
     <button id="placeObjectButton" class="hidden">Place Ball Here</button>
 
     <script>
-      // Register custom component to control object visibility based on camera direction.
+      // Modified visibility-check component with wider angle
       AFRAME.registerComponent("visibility-check", {
         tick: function () {
           const cameraEl = document.querySelector("[gps-camera]");
           if (!cameraEl) return;
           const cameraObj = cameraEl.object3D;
           const objectObj = this.el.object3D;
-          // Get world positions.
+
+          // Get world positions
           const camPosition = new THREE.Vector3();
           cameraObj.getWorldPosition(camPosition);
           const objPosition = new THREE.Vector3();
           objectObj.getWorldPosition(objPosition);
-          // Calculate the direction vector from camera to object.
+
+          // Calculate distance between camera and object
+          const distance = camPosition.distanceTo(objPosition);
+
+          // Always show if within 20 meters
+          if (distance < 20) {
+            this.el.setAttribute("visible", true);
+            return;
+          }
+
+          // Original angle check with wider 90° threshold
           const directionToObject = new THREE.Vector3()
             .subVectors(objPosition, camPosition)
             .normalize();
-          // Camera faces -Z by default.
           const cameraForward = new THREE.Vector3(0, 0, -1)
             .applyQuaternion(cameraObj.quaternion)
             .normalize();
-          // Compute angle between camera's forward and the direction to the object.
           const angle = cameraForward.angleTo(directionToObject);
-          const threshold = THREE.MathUtils.degToRad(15); // 15° threshold
-          // Set visibility: true if within threshold, false otherwise.
+          const threshold = THREE.MathUtils.degToRad(90); // 90° viewing angle
           this.el.setAttribute("visible", angle < threshold);
         },
       });
 
-      // DOM elements
-      const startButton = document.getElementById("startButton");
-      const arScene = document.getElementById("arScene");
-      const statusInfo = document.getElementById("statusInfo");
-      const startScreen = document.getElementById("startScreen");
-      const placeObjectButton = document.getElementById("placeObjectButton");
-
-      // Current position
-      let currentLat = 0;
-      let currentLng = 0;
-
-      // Check if geolocation is supported
-      function checkGeolocation() {
-        return "geolocation" in navigator;
-      }
-
-      // Get current position (Promise-based)
-      function getCurrentPosition() {
-        return new Promise((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              currentLat = position.coords.latitude;
-              currentLng = position.coords.longitude;
-              resolve(position);
-            },
-            (error) => reject(error),
-            { enableHighAccuracy: true, maximumAge: 0, timeout: 27000 }
-          );
-        });
-      }
-
-      // Initialize AR experience
-      function initAR() {
-        startScreen.classList.add("hidden");
-        arScene.classList.remove("hidden");
-        statusInfo.classList.remove("hidden");
-        statusInfo.textContent = "Getting your location...";
-
-        getCurrentPosition()
-          .then((position) => {
-            statusInfo.textContent = `Location: ${position.coords.latitude.toFixed(
-              6
-            )}, ${position.coords.longitude.toFixed(6)}`;
-            // For simulation/testing: set gps-camera simulation values.
-            const camera = document.querySelector("a-camera");
-            camera.setAttribute("gps-camera", {
-              simulateLatitude: position.coords.latitude,
-              simulateLongitude: position.coords.longitude,
-            });
-            // Show the button for manual ball placement.
-            placeObjectButton.classList.remove("hidden");
-            // Start watching the user's position.
-            watchPosition();
-          })
-          .catch((error) => {
-            statusInfo.textContent = `Error: ${error.message}`;
-            console.error(error);
-          });
-      }
-
-      // Create an AR object (ball with a label) at given GPS coordinates.
+      // Modified createARObject function with better visibility
       function createARObject(lat, lng, label, color = "red") {
         const entity = document.createElement("a-entity");
-        // Set GPS location using AR.js attribute.
         entity.setAttribute(
           "gps-entity-place",
           `latitude: ${lat}; longitude: ${lng};`
         );
-        // Attach custom component for visibility control.
         entity.setAttribute("visibility-check", "");
-        // Create a sphere (the ball).
+
+        // Larger, more visible sphere
         const sphere = document.createElement("a-sphere");
-        sphere.setAttribute("radius", "0.5");
+        sphere.setAttribute("radius", "5"); // Increased from 0.5 to 5 meters
         sphere.setAttribute("color", color);
-        sphere.setAttribute("opacity", "0.8");
-        // Create a text label.
+        sphere.setAttribute("opacity", "0.9");
+        sphere.setAttribute("material", "shader: flat;"); // Better visibility
+
+        // Text label with contrast
         const textEntity = document.createElement("a-text");
         textEntity.setAttribute("value", label);
         textEntity.setAttribute("look-at", "[gps-camera]");
-        textEntity.setAttribute("scale", "2 2 2");
-        textEntity.setAttribute("color", color);
-        textEntity.setAttribute("position", "0 1 0");
-        // Append sphere and text to the container entity.
+        textEntity.setAttribute("scale", "5 5 5"); // Larger text
+        textEntity.setAttribute("color", "#ffffff"); // White text for contrast
+        textEntity.setAttribute("position", "0 7 0"); // Higher position
+
+        // Add animation for better visibility
+        sphere.setAttribute("animation", {
+          property: "scale",
+          to: "1.2 1.2 1.2",
+          dur: 2000,
+          loop: true,
+          easing: "easeInOutQuad",
+        });
+
         entity.appendChild(sphere);
         entity.appendChild(textEntity);
-        // Add the entity to the A-Frame scene.
         document.querySelector("a-scene").appendChild(entity);
-        console.log(`Ball placed at: Latitude ${lat}, Longitude ${lng}`);
+
+        // Debug log
+        console.log(`Ball placed at: ${lat}, ${lng}`);
+        console.log(`Current position: ${currentLat}, ${currentLng}`);
+
         return entity;
       }
-
-      // Watch the user's position and update status info.
-      function watchPosition() {
-        navigator.geolocation.watchPosition(
-          (position) => {
-            currentLat = position.coords.latitude;
-            currentLng = position.coords.longitude;
-            statusInfo.textContent = `Location: ${position.coords.latitude.toFixed(
-              6
-            )}, ${position.coords.longitude.toFixed(
-              6
-            )} (Accuracy: ${position.coords.accuracy.toFixed(1)}m)`;
-          },
-          (error) => {
-            console.error(error);
-            statusInfo.textContent = `Error: ${error.message}`;
-          },
-          { enableHighAccuracy: true, maximumAge: 0, timeout: 27000 }
-        );
-      }
-
-      // Place ball at current location when button is pressed.
-      function placeBallAtCurrentLocation() {
-        if (currentLat === 0 && currentLng === 0) {
-          statusInfo.textContent = "Location not available yet. Please wait.";
-          return;
-        }
-        const colors = ["red", "blue", "green", "yellow", "purple", "orange"];
-        const randomColor = colors[Math.floor(Math.random() * colors.length)];
-        const timestamp = new Date().toLocaleTimeString();
-        createARObject(
-          currentLat,
-          currentLng,
-          `Placed at ${timestamp}`,
-          randomColor
-        );
-        statusInfo.textContent = `Ball placed at ${timestamp}`;
-      }
-
-      // Event listeners
-      startButton.addEventListener("click", () => {
-        if (!checkGeolocation()) {
-          statusInfo.classList.remove("hidden");
-          statusInfo.textContent =
-            "Geolocation is not supported by your browser";
-          return;
-        }
-        initAR();
-      });
-
-      placeObjectButton.addEventListener("click", placeBallAtCurrentLocation);
-
-      // Update AR.js on orientation change.
-      window.addEventListener("orientationchange", () => {
-        setTimeout(() => {
-          const arjsSystem = document.querySelector("a-scene").systems["arjs"];
-          if (arjsSystem && arjsSystem._arSession) {
-            arjsSystem._arSession.onResize();
-          }
-        }, 1000);
-      });
     </script>
   </body>
 </html>
