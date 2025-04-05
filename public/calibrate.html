@@ -49,6 +49,8 @@
         max-width: 90%;
         height: auto;
         max-height: 100px;
+        grid-template-columns: repeat(4, 1fr);
+        grid-template-rows: repeat(2, 44px);
       }
 
       .button-wrapper {
@@ -123,12 +125,65 @@
       #readyButton:active {
         background-color: rgba(200, 200, 200, 0.8);
       }
+
+      #crosshair {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 20px;
+        height: 20px;
+        pointer-events: none;
+        z-index: 1000;
+      }
+
+      #crosshair::before,
+      #crosshair::after {
+        content: "";
+        position: absolute;
+        background: rgba(0, 255, 0, 0.8);
+      }
+
+      #crosshair::before {
+        width: 2px;
+        height: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+
+      #crosshair::after {
+        height: 2px;
+        width: 100%;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+
+      #attackButton {
+        background-color: rgba(255, 0, 0, 0.7);
+        color: white;
+      }
+
+      #counterDisplay {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        color: white;
+        font-size: 1.2em;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 10px;
+        border-radius: 5px;
+        z-index: 1000;
+      }
     </style>
   </head>
 
   <body>
+    <div id="crosshair"></div>
     <div id="overlay">
       <div class="control-panel">
+        <div class="button-wrapper">
+          <button id="attackButton">Attack</button>
+        </div>
         <button id="readyButton">Ready</button>
         <div class="button-wrapper">
           <button id="moveLeft">Left</button>
@@ -160,6 +215,8 @@
     </script>
 
     <script type="module">
+      let successfulHits = 0;
+      let totalAttacks = 0;
       import * as THREE from "https://cdn.skypack.dev/three@0.150.1";
 
       const scene = new THREE.Scene();
@@ -184,6 +241,33 @@
       const sphere = new THREE.Mesh(geometry, material);
       sphere.position.set(0, 0, -0.5); // position the sphere half a meter in front of the camera
       scene.add(sphere);
+
+      // Raycasting logic
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+
+      // Attack function
+      function checkIntersection() {
+        mouse.set(0, 0);
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObject(sphere);
+
+        if (intersects.length > 0) {
+          console.log("HIT!", intersects[0].distance);
+          return true;
+        }
+        return false;
+      }
+
+      // Add attack button listener
+      document.getElementById("attackButton").addEventListener("click", () => {
+        if (checkIntersection()) {
+          console.log("Successful attack!");
+          // Add your attack logic here
+        } else {
+          console.log("Attack missed");
+        }
+      });
 
       // Lighting
       const light = new THREE.HemisphereLight(0xffffff, 0x444444);
@@ -294,6 +378,23 @@
       }
 
       animate();
+
+      document.getElementById("attackButton").addEventListener("click", () => {
+        totalAttacks++;
+        document.getElementById("totalCounter").textContent = totalAttacks;
+
+        if (checkIntersection()) {
+          successfulHits++;
+          document.getElementById("hitCounter").textContent = successfulHits;
+          console.log(`Successful attack! (${successfulHits}/${totalAttacks})`);
+        } else {
+          console.log("Attack missed");
+        }
+      });
     </script>
+    <div id="counterDisplay">
+      Successful Attacks: <span id="hitCounter">0</span> Total Attacks:
+      <span id="totalCounter">0</span>
+    </div>
   </body>
 </html>
