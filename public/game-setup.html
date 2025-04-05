@@ -448,8 +448,10 @@
             // Listen for game start
             socket.on('gameStarted', function (data) {
                 alert('The game is starting!');
-                // TODO: Redirect to the game page or change the UI
-                window.location.href = '/game-calibration';
+            });
+
+            socket.on('goToCalibrationPage', function (data) {
+                window.location.href = '/calibrate.html';
             });
 
             // Setup refresh button
