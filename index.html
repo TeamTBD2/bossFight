@@ -14,6 +14,36 @@
     canvas {
       display: block;
     }
+
+    /* Styling for the UI */
+    .controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background-color: rgba(0, 0, 0, 0.5);
+      padding: 10px;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+
+    .controls input {
+      margin: 5px;
+      padding: 5px;
+      width: 60px;
+    }
+
+    .controls button {
+      margin-top: 10px;
+      padding: 5px;
+      background-color: #3498db;
+      border: none;
+      color: white;
+      cursor: pointer;
+    }
+
+    .controls button:hover {
+      background-color: #2980b9;
+    }
   </style>
 </head>
 
@@ -53,6 +83,12 @@
       return new THREE.Vector3(x, y, z);
     }
 
+    // Create a red sphere
+    const geometry = new THREE.SphereGeometry(1, 32, 32); // radius, widthSegments, heightSegments
+    const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+    const sphere = new THREE.Mesh(geometry, material);
+    scene.add(sphere);
+
     // Get current position using Geolocation API
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(position => {
@@ -64,14 +100,8 @@
         const spherePosition = latLonTo3D(lat, lon, 10); // Radius 10 for scale
         spherePosition.z += altitude / 1000; // Adjust z axis for altitude
 
-        // Create a red sphere
-        const geometry = new THREE.SphereGeometry(1, 32, 32); // radius, widthSegments, heightSegments
-        const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
-        const sphere = new THREE.Mesh(geometry, material);
-
-        sphere.position.copy(spherePosition); // Set the sphere position to lat/lon converted coordinates
-        scene.add(sphere);
-
+        // Set initial sphere position
+        sphere.position.copy(spherePosition);
       }, error => {
         console.error('Geolocation error:', error);
       });
@@ -90,6 +120,40 @@
     }
 
     animate();
+
+    // UI for controlling sphere position
+    const controlsDiv = document.createElement('div');
+    controlsDiv.className = 'controls';
+    document.body.appendChild(controlsDiv);
+
+    const xInput = document.createElement('input');
+    const yInput = document.createElement('input');
+    const zInput = document.createElement('input');
+    const button = document.createElement('button');
+
+    xInput.type = 'number';
+    yInput.type = 'number';
+    zInput.type = 'number';
+    button.textContent = 'Set Position';
+
+    xInput.placeholder = 'X';
+    yInput.placeholder = 'Y';
+    zInput.placeholder = 'Z';
+
+    controlsDiv.appendChild(xInput);
+    controlsDiv.appendChild(yInput);
+    controlsDiv.appendChild(zInput);
+    controlsDiv.appendChild(button);
+
+    // Add event listener to the button
+    button.addEventListener('click', () => {
+      const newX = parseFloat(xInput.value);
+      const newY = parseFloat(yInput.value);
+      const newZ = parseFloat(zInput.value);
+
+      // Update the sphere position
+      sphere.position.set(newX, newY, newZ);
+    });
   </script>
 </body>
 
