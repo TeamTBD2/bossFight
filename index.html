@@ -12,23 +12,6 @@
   <!-- AR.js location-based component -->
   <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
-  <script>
-    AFRAME.registerComponent('gps-new-entity-place', {
-      schema: {
-        latitude: {
-          type: 'number',
-          default: 0
-        },
-        longitude: {
-          type: 'number',
-          default: 0
-        }
-      },
-      init: function () {
-        this.originalPosition = this.el.getAttribute('position');
-      }
-    });
-  </script>
   <style>
     body {
       margin: 0;
@@ -120,9 +103,10 @@
                    displayHeight: 960;">
 
     <!-- Camera -->
-    <a-camera gps-camera="simulateLatitude: 0; simulateLongitude: 0" rotation-reader></a-camera>
+    <a-camera gps-camera="simulateLatitude: 0; simulateLongitude: 0" rotation-reader position="0 0 0"></a-camera>
 
-    <!-- AR objects will be added here dynamically -->
+    <!-- World space container for AR objects -->
+    <a-entity id="world-container"></a-entity>
   </a-scene>
 
   <div id="statusInfo" class="hidden">
@@ -138,10 +122,16 @@
     const statusInfo = document.getElementById('statusInfo');
     const startScreen = document.getElementById('startScreen');
     const placeObjectButton = document.getElementById('placeObjectButton');
+    const worldContainer = document.getElementById('world-container');
 
     // Current position
     let currentLat = 0;
     let currentLng = 0;
+
+    // World origin - the first GPS position will be our world origin
+    let originLat = 0;
+    let originLng = 0;
+    let originSet = false;
 
     // Check if the browser supports geolocation
     function checkGeolocation() {
@@ -159,6 +149,14 @@
           position => {
             currentLat = position.coords.latitude;
             currentLng = position.coords.longitude;
+
+            // Set origin coordinates if not already set
+            if (!originSet) {
+              originLat = currentLat;
+              originLng = currentLng;
+              originSet = true;
+            }
+
             resolve(position);
           },
           error => {
@@ -188,8 +186,8 @@
             simulateLongitude: position.coords.longitude
           });
 
-          // Add example AR objects at fixed distances from user
-          addExampleObjects(position.coords.latitude, position.coords.longitude);
+          // Add objects in world space around the user
+          addWorldSpaceObjects();
 
           // Show place object button
           placeObjectButton.classList.remove('hidden');
@@ -203,33 +201,31 @@
         });
     }
 
-    // Add example AR objects
-    function addExampleObjects(lat, lng) {
-      // Place objects in different directions
-      const distances = [
-        { dist: 0.0001, label: '10m North', color: 'red' },
-        { dist: 0.0002, label: '20m East', color: 'blue', direction: 'lng' },
-        { dist: 0.0003, label: '30m South', color: 'green', direction: 'lat', sign: -1 },
-        { dist: 0.0004, label: '40m West', color: 'yellow', direction: 'lng', sign: -1 }
+    // Add example AR objects in world space
+    function addWorldSpaceObjects() {
+      // Create objects at various positions around the camera in world space
+      const worldPositions = [
+        { position: "0 0 -5", label: "5m Forward", color: "red" },
+        { position: "5 0 0", label: "5m Right", color: "blue" },
+        { position: "0 0 5", label: "5m Behind", color: "green" },
+        { position: "-5 0 0", label: "5m Left", color: "yellow" },
+        { position: "5 0 -5", label: "5m Forward-Right", color: "purple" },
+        { position: "-5 0 -5", label: "5m Forward-Left", color: "orange" }
       ];
 
-      distances.forEach((item, index) => {
-        const direction = item.direction || 'lat';
-        const sign = item.sign || 1;
-
-        // Calculate new position
-        const newLat = direction === 'lat' ? lat + (sign * item.dist) : lat;
-        const newLng = direction === 'lng' ? lng + (sign * item.dist) : lng;
-
-        // Create entities
-        createARObject(newLat, newLng, item.label, item.color);
+      worldPositions.forEach((item) => {
+        createWorldSpaceObject(item.position, item.label, item.color);
       });
 
-      statusInfo.textContent = `Added ${distances.length} AR objects around your location`;
+      statusInfo.textContent = `Added ${worldPositions.length} AR objects in world space`;
     }
 
-    // Create AR object at specific GPS coordinates
-    function createARObject(lat, lng, text, color = 'red') {
+    // Create AR object at specific world position
+    function createWorldSpaceObject(position, text, color = 'red') {
+      // Create container entity with world position
+      const entity = document.createElement('a-entity');
+      entity.setAttribute('position', position);
+
       // Create text entity
       const textEntity = document.createElement('a-text');
       textEntity.setAttribute('value', text);
@@ -237,13 +233,7 @@
       textEntity.setAttribute('scale', '1 1 1');
       textEntity.setAttribute('align', 'center');
       textEntity.setAttribute('color', color);
-
-      // Create container entity with GPS position
-      const entity = document.createElement('a-entity');
-      entity.setAttribute('gps-new-entity-place', {
-        latitude: lat,
-        longitude: lng
-      });
+      textEntity.setAttribute('position', '0 1.5 0');  // Position text above sphere
 
       // Add sphere to make it more visible
       const sphere = document.createElement('a-sphere');
@@ -255,10 +245,10 @@
       entity.appendChild(sphere);
       entity.appendChild(textEntity);
 
-      // Add to scene
-      document.querySelector('a-scene').appendChild(entity);
+      // Add to world container
+      worldContainer.appendChild(entity);
 
-      console.log(`Created AR object at ${lat}, ${lng} with label ${text}`);
+      console.log(`Created world space object at ${position} with label ${text}`);
       return entity;
     }
 
@@ -288,21 +278,29 @@
       );
     }
 
-    // Place object at current location
-    function placeObjectAtCurrentLocation() {
-      if (currentLat === 0 && currentLng === 0) {
-        statusInfo.textContent = "Location not available yet. Please wait.";
-        return;
-      }
-
+    // Place object in world space at camera's front position
+    function placeObjectInWorldSpace() {
       // Create random color
       const colors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
       const randomColor = colors[Math.floor(Math.random() * colors.length)];
 
+      // Get camera direction
+      const camera = document.querySelector('a-camera');
+      const cameraRotation = camera.getAttribute('rotation');
+
+      // Calculate position 3 meters in front of the camera
+      const distance = 3;
+      const radians = THREE.MathUtils.degToRad(cameraRotation.y);
+
+      const x = -Math.sin(radians) * distance;
+      const z = -Math.cos(radians) * distance;
+
+      const position = `${x.toFixed(2)} 0 ${z.toFixed(2)}`;
+
       // Create object
       const timestamp = new Date().toLocaleTimeString();
-      createARObject(currentLat, currentLng, `Object placed at ${timestamp}`, randomColor);
-      statusInfo.textContent = `New object placed at your current location (${timestamp})`;
+      createWorldSpaceObject(position, `Placed at ${timestamp}`, randomColor);
+      statusInfo.textContent = `New object placed ${distance}m in front of you (${timestamp})`;
     }
 
     // Event listeners
@@ -316,7 +314,7 @@
       initAR();
     });
 
-    placeObjectButton.addEventListener('click', placeObjectAtCurrentLocation);
+    placeObjectButton.addEventListener('click', placeObjectInWorldSpace);
 
     // Handle orientation changes
     window.addEventListener('orientationchange', () => {
