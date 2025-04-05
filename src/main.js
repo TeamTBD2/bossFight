@@ -30,16 +30,17 @@ locar.on("gpsupdate", (pos, distMoved) => {
   const userLat = pos.coords.latitude;
   const userLon = pos.coords.longitude;
   // Box properties are defined with latDis: 0 and lonDis: 0.00005.
-  const boxLat = userLat + 0;
-  const boxLon = userLon + 0.00005;
 
-  // Update the coordinate display div with current user and box coordinates.
-  coordDisplay.innerHTML = `
+  if (firstLocation) {
+
+    const boxLat = pos.coords.latitude + 0;
+    const boxLon = pos.coords.longitude + 0.00005;
+
+    coordDisplay.innerHTML = `
     <strong>User Coordinates:</strong> Latitude: ${userLat.toFixed(6)}, Longitude: ${userLon.toFixed(6)}<br>
     <strong>Box Coordinates:</strong> Latitude: ${boxLat.toFixed(6)}, Longitude: ${boxLon.toFixed(6)}
   `;
 
-  if (firstLocation) {
     const boxProps = [{
       latDis: 0,
       lonDis: 0.00005,
