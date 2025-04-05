@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <title>AR.js + Three.js Ball with GPS</title>
-    <!-- Include Three.js -->
+    <!-- Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- Include AR.js (Three.js version) -->
-    <script src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.3.0/three.js/build/ar-threex.min.js"></script>
+    <!-- AR.js with Three.js support -->
+    <script src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.3.0/dist/ar-threex.min.js"></script>
     <style>
       body {
         margin: 0;
@@ -27,7 +27,7 @@
         top: 0;
         left: 0;
         z-index: 1000;
-        transform: scaleX(-1); /* Mirror the video */
+        transform: scaleX(-1);
       }
       canvas {
         position: absolute;
@@ -87,29 +87,26 @@
           alpha: true,
         });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
         // AR Source setup
         arToolkitSource = new THREEx.ArToolkitSource({
           sourceType: "webcam",
-          sourceWidth: window.innerWidth,
-          sourceHeight: window.innerHeight,
+          sourceWidth: 1280,
+          sourceHeight: 720,
           displayWidth: window.innerWidth,
           displayHeight: window.innerHeight,
         });
 
         arToolkitSource.init(() => {
-          // Start video after user gesture
-          arToolkitSource.domElement.addEventListener("canplay", () => {
-            arToolkitSource.play();
-          });
+          arToolkitSource.play();
+          document.body.appendChild(arToolkitSource.domElement);
         });
 
         // AR Context setup
         arToolkitContext = new THREEx.ArToolkitContext({
           cameraParametersUrl:
-            "https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.3.0/three.js/data/camera_para.dat",
+            "https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.3.0/dist/data/camera_para.dat",
           detectionMode: "mono",
         });
         arToolkitContext.init(() => {
