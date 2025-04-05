@@ -1,40 +1,51 @@
 <!DOCTYPE html>
 <html>
-<head>
-<title>three.js</title>
-<style>
+  <head>
+    <meta charset="utf-8">
+    <title>8th Wall AR Sphere Example</title>
+    <!-- Ensure the viewport covers the entire device screen -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <!-- Include the 8th Wall Web AR SDK (be sure to add your own app key) -->
+    <script src="https://apps.8thwall.com/xrweb?appKey=YOUR_APP_KEY"></script>
+    <!-- Include Three.js (you can use a CDN version) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r121/three.min.js"></script>
+    <style>
+      /* Make sure the canvas fills the whole screen */
+      body, html { margin: 0; height: 100%; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <script>
+      // Configure the Three.js renderer within 8th Wall.
+      // Here we enable rendering of the camera feed to a texture.
+      XR8.Threejs.configure({ renderCameraTexture: true });
 
-#gpsinput {
-	display: flex;
-	height: 100%;
-	width: 100%;
-	z-index: 1;
-    position: fixed;
-    top: 0px;
-    font-size: 200%;
-	justify-content: end; 
-	flex-direction: column;
-}
+      // Add a camera pipeline module that runs when the AR session starts.
+      // This module will get access to the 8th Wall Three.js scene and camera,
+      // create a sphere, and add it to the scene.
+      XR8.addCameraPipelineModule({
+        name: 'add-sphere',
+        onStart: () => {
+          // Get the Three.js scene and camera that 8th Wall manages.
+          const { scene, camera } = XR8.Threejs.xrScene();
 
-#gpsinput > div {
-    background-color: #c0c0c0; 
-	display: flex;
-	justify-content: center
-}
+          // Create a red sphere. The sphere’s radius is 0.1 meters.
+          // To ensure it “sits” on the detected surface (Y=0), position its center at Y=0.1.
+          const geometry = new THREE.SphereGeometry(0.1, 32, 32);
+          const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+          const sphere = new THREE.Mesh(geometry, material);
 
-#gpsinput input, #gpsinput button {
-	font-size: 200%;
-	margin: 10px;
-}
+          // Position the sphere 0.5 meters in front of the starting camera location.
+          // Adjust the X and Z values as needed.
+          sphere.position.set(0, 0.1, -0.5);
 
-</style>
-<script type='module' src='src/main.js'></script>
-</head>
-<body>
-<div id="gpsinput">
-<div><input id="fakeLat" placeholder="Fake Lat" /></div>
-<div><input id="fakeLon" placeholder="Fake Lon"/></div>
-<div><button id="setFakeLoc">Set Fake Location!</button></div>
-</div>
-</body>
+          // Add the sphere to the scene so that it is rendered.
+          scene.add(sphere);
+        }
+      });
+
+      // Start the 8th Wall AR engine.
+      XR8.run();
+    </script>
+  </body>
 </html>
