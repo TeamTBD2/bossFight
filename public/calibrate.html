@@ -766,7 +766,7 @@
         // Add random variance
         const variance = {
           x: THREE.MathUtils.randFloatSpread(LASER_VARIANCE),
-          y: THREE.MathUtils.randFloatSpread(LASER_VARIANCE),
+          y: THREE.MathUtils.randFloatSpread(LASER_VARIANCE) + 2,
           z: THREE.MathUtils.randFloatSpread(LASER_VARIANCE),
         };
         // startPosition = camera.position;
@@ -797,12 +797,12 @@
           transparent: true,
           opacity: 0.8,
         });
+        const laser = new THREE.Line(laserGeometry, laserMaterial);
 
         // Add glow effect for hits
         if (hit) {
           // Create a point light at the dragon position to simulate impact
           // Create the laser line
-          const laser = new THREE.Line(laserGeometry, laserMaterial);
           scene.add(laser);
           const impactLight = new THREE.PointLight(0xff4500, 2, 1);
           impactLight.position.copy(endPosition);
