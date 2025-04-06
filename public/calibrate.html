@@ -474,7 +474,7 @@
       // Add attack button functionality
       document.getElementById('attackButton').addEventListener('click', () => {
         // Simple hit detection - check if camera is pointing roughly toward dragon position
-        const hit = Math.random() > 0.3; // 70% chance to hit for demo purposes
+        let hit = attackHit();
         
         // Emit attack event to server
         socket.emit('playerAttack', {
@@ -569,6 +569,212 @@
         playerMesh.scale.y = 0.2; // Flatten the cylinder to indicate death
       }
     }
+
+    // Handle when a player attacks the dragon
+    socket.on('playerAttacked', (data) => {
+      // Only process if game is active
+      if (!window.gameState || !window.gameState.gameActive) return;
+      
+      const { playerId, hit } = data;
+      
+      // Skip if it's our own attack (we've already shown feedback locally)
+      if (playerId === window.playerId) return;
+      
+      // Find the player in local array
+      const localPlayers = window.gameState.localPlayers;
+      const attackingPlayer = localPlayers.find(p => p.id === playerId);
+      
+      if (!attackingPlayer) return;
+      
+      // Get dragon position from localStorage
+      const dragonPositionString = localStorage.getItem(`dragon_position_${gameId}_${window.playerId}`);
+      if (!dragonPositionString) return;
+      
+      const dragonPosition = JSON.parse(dragonPositionString);
+      
+      // Create a laser effect (red line) from player to dragon
+      createLaserEffect(attackingPlayer, dragonPosition, hit);
+      
+      // If the attack hit, reduce dragon health and show visual feedback
+      if (hit) {
+        // Reduce local dragon health
+        window.gameState.bossHealth -= 10;
+        
+        // Update UI if necessary
+        const gameInfoElement = document.getElementById('gameInfo');
+        if (gameInfoElement) {
+          gameInfoElement.textContent = `Game Active! Boss Health: ${window.gameState.bossHealth}`;
+        }
+        
+        // Add visual hit effect on dragon
+        showDragonHitEffect();
+      }
+    });
+
+    // Helper function to create a laser effect
+    function createLaserEffect(attackingPlayer, dragonPosition, hit) {
+      // Get the position of the attacking player
+      let startPosition;
+      
+      if (attackingPlayer.isSelf) {
+        // If it's the player themselves (shouldn't happen based on early return, but just in case)
+        startPosition = new THREE.Vector3(0, 0, 0); // Use camera position
+      } else {
+        // For other players, use their stored position
+        const playerMesh = scene.children.find(
+          child => child.userData && child.userData.playerId === attackingPlayer.id
+        );
+        
+        if (playerMesh) {
+          startPosition = playerMesh.position.clone();
+        } else {
+          // If no mesh, use the stored position
+          startPosition = new THREE.Vector3(
+            attackingPlayer.position.x,
+            attackingPlayer.position.y,
+            attackingPlayer.position.z
+          );
+        }
+      }
+      
+      // Create end position for the dragon
+      const endPosition = new THREE.Vector3(
+        dragonPosition.x,
+        dragonPosition.y,
+        dragonPosition.z
+      );
+      
+      // Create laser geometry (a line from player to dragon)
+      const laserGeometry = new THREE.BufferGeometry().setFromPoints([
+        startPosition,
+        endPosition
+      ]);
+      
+      // Choose laser color based on hit (red for miss, bright red/orange for hit)
+      const laserColor = hit ? 0xff4500 : 0xff0000;
+      const laserMaterial = new THREE.LineBasicMaterial({ 
+        color: laserColor,
+        linewidth: 3,
+        transparent: true,
+        opacity: 0.8
+      });
+      
+      // Create the laser line
+      const laser = new THREE.Line(laserGeometry, laserMaterial);
+      scene.add(laser);
+      
+      // Add glow effect for hits
+      if (hit) {
+        // Create a point light at the dragon position to simulate impact
+        const impactLight = new THREE.PointLight(0xff4500, 2, 1);
+        impactLight.position.copy(endPosition);
+        scene.add(impactLight);
+        
+        // Remove the impact light after a short time
+        setTimeout(() => {
+          scene.remove(impactLight);
+        }, 200);
+      }
+      
+      // Remove the laser after a short duration
+      setTimeout(() => {
+        scene.remove(laser);
+      }, 300);
+    }
+
+    // Helper function to show a visual effect when the dragon is hit
+    function showDragonHitEffect() {
+      // Get dragon position
+      const dragonPositionString = localStorage.getItem(`dragon_position_${gameId}_${window.playerId}`);
+      if (!dragonPositionString) return;
+      
+      const dragonPosition = JSON.parse(dragonPositionString);
+      
+      // Create hit effect (particles or explosion)
+      const particles = new THREE.Group();
+      
+      // Create 10 small spheres for particle effect
+      for (let i = 0; i < 10; i++) {
+        const particleGeometry = new THREE.SphereGeometry(0.02, 8, 8);
+        const particleMaterial = new THREE.MeshBasicMaterial({ 
+          color: 0xff4500,
+          transparent: true,
+          opacity: 0.8
+        });
+        
+        const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+        
+        // Random position around dragon hit point
+        particle.position.set(
+          dragonPosition.x + (Math.random() - 0.5) * 0.2,
+          dragonPosition.y + (Math.random() - 0.5) * 0.2,
+          dragonPosition.z + (Math.random() - 0.5) * 0.2
+        );
+        
+        // Random velocity
+        particle.userData.velocity = new THREE.Vector3(
+          (Math.random() - 0.5) * 0.01,
+          (Math.random() - 0.5) * 0.01,
+          (Math.random() - 0.5) * 0.01
+        );
+        
+        particles.add(particle);
+      }
+      
+      scene.add(particles);
+      
+      // Animation for particles
+      let frameCount = 0;
+      const maxFrames = 30;
+      
+      function animateParticles() {
+        if (frameCount >= maxFrames) {
+          scene.remove(particles);
+          return;
+        }
+        
+        // Move particles outward and fade them
+        particles.children.forEach(particle => {
+          particle.position.add(particle.userData.velocity);
+          particle.material.opacity -= 0.02;
+          particle.scale.multiplyScalar(0.95);
+        });
+        
+        frameCount++;
+        requestAnimationFrame(animateParticles);
+      }
+      
+      animateParticles();
+      
+      // Add screen shake effect for hit feedback
+      const originalCameraPosition = camera.position.clone();
+      
+      let shakeIntensity = 0.02;
+      let shakeCount = 0;
+      const maxShakes = 5;
+      
+      function shakeCamera() {
+        if (shakeCount >= maxShakes) {
+          camera.position.copy(originalCameraPosition);
+          return;
+        }
+        
+        // Apply random offset to camera
+        camera.position.set(
+          originalCameraPosition.x + (Math.random() - 0.5) * shakeIntensity,
+          originalCameraPosition.y + (Math.random() - 0.5) * shakeIntensity,
+          originalCameraPosition.z + (Math.random() - 0.5) * shakeIntensity
+        );
+        
+        shakeCount++;
+        shakeIntensity *= 0.9; // Reduce intensity over time
+        
+        setTimeout(shakeCamera, 50);
+      }
+      
+      shakeCamera();
+    }
+
 
     function showGameEndUI(data) {
       const gameOverUI = document.createElement('div');
