@@ -288,14 +288,11 @@ io.on('connection', (socket) => {
     // Mark the player as ready
     activeGames[gameId].players[playerIndex].isReady = true;
     
-    // Broadcast that this player is ready
-    io.to(gameId).emit('playerIsReady', { 
-      playerId: playerId
-    });
     
     // Check if all players are ready
     const allReady = activeGames[gameId].players.every(p => p.isReady);
     if (allReady) {
+      console.log("EVERYONE IS READY!!");
       // If all players are ready, start the actual game
       startActualGame(gameId);
     }

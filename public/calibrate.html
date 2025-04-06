@@ -427,6 +427,8 @@
     // Set up all socket event handlers at the same level
     socket.on('gameStarted', (data) => {
       // Hide all existing UI elements (calibration controls)
+      console.log("trying to hide ui elemetnts");
+      
       document.querySelector('.control-panel').style.display = 'none';
       document.getElementById('readyButton').style.display = 'none';
       
