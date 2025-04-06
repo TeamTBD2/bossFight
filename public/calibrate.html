@@ -459,7 +459,7 @@
 
       // Store game state
       window.gameState = {
-        localPlayers: window.localPlayers || [],
+        localPlayers: window.gameState.localPlayers,
         bossHealth: data.bossHealth,
         gameActive: true
       };
@@ -600,7 +600,6 @@
 
     function initializeLocalPlayers(players) {
       const localPlayers = [];
-
       // For each player from server data, create a local representation
       players.forEach(player => {
         // Skip self in the visualization
@@ -612,6 +611,7 @@
             isDead: player.isDead,
             health: 20 // Starting health
           });
+
         } else {
           // For other players, create default positions around the player in a circle
           const angle = Math.random() * Math.PI * 2;
@@ -633,7 +633,6 @@
           createPlayerVisual(player.id, player.name, angle, distance);
         }
       });
-
       window.gameState = {
         localPlayers: localPlayers,
         gameActive: true
