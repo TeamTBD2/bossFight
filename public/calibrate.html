@@ -221,6 +221,21 @@
     }
   </style>
 </head>
+#gameInfo {
+position: fixed;
+top: 20px;
+left: 50%;
+transform: translateX(-50%);
+background-color: rgba(0, 0, 0, 0.7);
+color: white;
+padding: 10px 15px;
+border-radius: 5px;
+font-size: 14px;
+z-index: 999;
+text-align: center;
+}
+</style>
+</head>
 
 <body>
   <!-- <div id="gameInfo">Loading game info...</div> -->
@@ -299,49 +314,60 @@
 
 
     // Display game info
-    const gameInfoElement = document.getElementById('gameInfo');
+    const gameInfoElement = document.getElementById("gameInfo");
     if (gameId && playerId) {
-      gameInfoElement.textContent = `Game ID: ${gameId.substring(0, 8)}... | Player ID: ${playerId.substring(0, 8)}...`;
+      gameInfoElement.textContent = `Game ID: ${gameId.substring(
+        0,
+        8
+      )}... | Player ID: ${playerId.substring(0, 8)}...`;
     } else {
-      gameInfoElement.textContent = 'Missing game or player information!';
-      gameInfoElement.style.backgroundColor = 'rgba(255, 0, 0, 0.7)';
+      gameInfoElement.textContent = "Missing game or player information!";
+      gameInfoElement.style.backgroundColor = "rgba(255, 0, 0, 0.7)";
     }
 
     // Set up Socket.IO connection
     const socket = io();
 
     // Check connection status
-    socket.on('connect', () => {
-      console.log('Connected to server with socket ID:', socket.id);
+    socket.on("connect", () => {
+      console.log("Connected to server with socket ID:", socket.id);
       if (gameId && playerId) {
-        console.log(`🚀 Emitting reconnectPlayer for game ${gameId}, player ${playerId} using socket ${socket.id}`);
+        console.log(
+          `🚀 Emitting reconnectPlayer for game ${gameId}, player ${playerId} using socket ${socket.id}`
+        );
         // Tell the server to associate this new socket with the existing player and join the room
-        socket.emit('reconnectPlayer', { gameId, playerId });
+        socket.emit("reconnectPlayer", { gameId, playerId });
       } else {
-        console.error('❌ Cannot reconnect: Missing gameId or playerId on calibration page load.');
-        gameInfoElement.textContent = 'Error: Missing game/player info. Cannot join game room.';
-        gameInfoElement.style.backgroundColor = 'rgba(255, 0, 0, 0.7)';
+        console.error(
+          "❌ Cannot reconnect: Missing gameId or playerId on calibration page load."
+        );
+        gameInfoElement.textContent =
+          "Error: Missing game/player info. Cannot join game room.";
+        gameInfoElement.style.backgroundColor = "rgba(255, 0, 0, 0.7)";
         // Consider disabling UI or redirecting
       }
     });
 
-    socket.on('connect_error', (error) => {
-      console.error('Connection error:', error);
-      gameInfoElement.textContent = 'Connection error! Please refresh.';
-      gameInfoElement.style.backgroundColor = 'rgba(255, 0, 0, 0.7)';
+    socket.on("connect_error", (error) => {
+      console.error("Connection error:", error);
+      gameInfoElement.textContent = "Connection error! Please refresh.";
+      gameInfoElement.style.backgroundColor = "rgba(255, 0, 0, 0.7)";
     });
 
     let scene, camera, renderer, dragon;
 
     // Set up the basic scene
     scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera = new THREE.PerspectiveCamera(
+      75,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.xr.enabled = true;
     document.body.appendChild(renderer.domElement);
-
-
 
     // Lighting
     const light = new THREE.HemisphereLight(0xffffff, 0x444444);
@@ -378,47 +404,49 @@
     }
 
     // AR Button functionality
-    const arButton = document.getElementById('arButton');
+    const arButton = document.getElementById("arButton");
 
     // Check if XR is supported
-    if ('xr' in navigator) {
-      navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
+    if ("xr" in navigator) {
+      navigator.xr.isSessionSupported("immersive-ar").then((supported) => {
         if (supported) {
-          arButton.textContent = 'Start AR';
+          arButton.textContent = "Start AR";
           arButton.disabled = false;
         } else {
-          arButton.textContent = 'AR Not Supported';
+          arButton.textContent = "AR Not Supported";
           arButton.disabled = true;
         }
       });
     } else {
-      arButton.textContent = 'XR Not Supported';
+      arButton.textContent = "XR Not Supported";
       arButton.disabled = true;
     }
 
     function startAR() {
-      document.getElementById('overlay').style.display = 'flex';
+      document.getElementById("overlay").style.display = "flex";
       const sessionInit = {
-        optionalFeatures: ['dom-overlay'],
-        domOverlay: { root: document.getElementById('overlay') },
+        optionalFeatures: ["dom-overlay"],
+        domOverlay: { root: document.getElementById("overlay") },
       };
-      navigator.xr.requestSession('immersive-ar', sessionInit).then(onSessionStarted);
+      navigator.xr
+        .requestSession("immersive-ar", sessionInit)
+        .then(onSessionStarted);
     }
 
     function onSessionStarted(session) {
-      session.addEventListener('end', onSessionEnded);
-      renderer.xr.setReferenceSpaceType('local');
+      session.addEventListener("end", onSessionEnded);
+      renderer.xr.setReferenceSpaceType("local");
       renderer.xr.setSession(session);
-      arButton.textContent = 'Stop AR';
-      arButton.style.display = 'none'; // Hide the AR button in AR mode
+      arButton.textContent = "Stop AR";
+      arButton.style.display = "none"; // Hide the AR button in AR mode
     }
 
     function onSessionEnded() {
-      arButton.textContent = 'Start AR';
-      arButton.style.display = 'block'; // Show the AR button when AR ends
+      arButton.textContent = "Start AR";
+      arButton.style.display = "block"; // Show the AR button when AR ends
     }
 
-    arButton.addEventListener('click', () => {
+    arButton.addEventListener("click", () => {
       if (renderer.xr.getSession() === null) {
         startAR();
       } else {
@@ -429,23 +457,23 @@
     // Add movement controls
     const moveDistance = 0.5; // movement distance per button press
 
-    document.getElementById('moveForward').addEventListener('click', () => {
+    document.getElementById("moveForward").addEventListener("click", () => {
       dragon.model.position.z -= moveDistance;
     });
 
-    document.getElementById('moveBackward').addEventListener('click', () => {
+    document.getElementById("moveBackward").addEventListener("click", () => {
       dragon.model.position.z += moveDistance;
     });
 
-    document.getElementById('moveLeft').addEventListener('click', () => {
+    document.getElementById("moveLeft").addEventListener("click", () => {
       dragon.model.position.x -= moveDistance;
     });
 
-    document.getElementById('moveRight').addEventListener('click', () => {
+    document.getElementById("moveRight").addEventListener("click", () => {
       dragon.model.position.x += moveDistance;
     });
 
-    document.getElementById('moveUp').addEventListener('click', () => {
+    document.getElementById("moveUp").addEventListener("click", () => {
       dragon.model.position.y += moveDistance;
     });
 
@@ -463,9 +491,9 @@
     });
 
     // Ready button event listener
-    document.getElementById('readyButton').addEventListener('click', () => {
+    document.getElementById("readyButton").addEventListener("click", () => {
       if (!gameId || !playerId) {
-        alert('Missing game or player information!');
+        alert("Missing game or player information!");
         return;
       }
 
@@ -473,24 +501,27 @@
       const dragonPosition = {
         x: dragon.model.position.x,
         y: dragon.model.position.y,
-        z: dragon.model.position.z
+        z: dragon.model.position.z,
       };
 
       // Store dragon position in localStorage for later use
-      localStorage.setItem(`dragon_position_${gameId}_${playerId}`, JSON.stringify(dragonPosition));
+      localStorage.setItem(
+        `dragon_position_${gameId}_${playerId}`,
+        JSON.stringify(dragonPosition)
+      );
 
       // Notify server player is ready
-      socket.emit('playerReady', { gameId, playerId });
+      socket.emit("playerReady", { gameId, playerId });
 
       // Update UI to show player is ready
-      const readyButton = document.getElementById('readyButton');
-      readyButton.textContent = 'Waiting for others...';
+      const readyButton = document.getElementById("readyButton");
+      readyButton.textContent = "Waiting for others...";
       readyButton.disabled = true;
-      readyButton.style.backgroundColor = '#888888';
+      readyButton.style.backgroundColor = "#888888";
     });
 
     // Set up all socket event handlers at the same level
-    socket.on('gameStarted', (data) => {
+    socket.on("gameStarted", (data) => {
       // Hide all existing UI elements (calibration controls
 
       document.querySelector('.control-panel').style.display = 'none';
@@ -498,9 +529,9 @@
       document.getElementById('forceStart').style.display = 'none';
 
       // Update game info to show we're in active game mode
-      const gameInfoElement = document.getElementById('gameInfo');
+      const gameInfoElement = document.getElementById("gameInfo");
       gameInfoElement.textContent = `Game Active! Boss Health: ${data.bossHealth}`;
-      gameInfoElement.style.backgroundColor = 'rgba(0, 128, 0, 0.7)'; // Green background
+      gameInfoElement.style.backgroundColor = "rgba(0, 128, 0, 0.7)"; // Green background
 
       // Create a game UI overlay with attack button and health display
       createGameUI();
@@ -512,12 +543,12 @@
       window.gameState = {
         localPlayers: window.gameState.localPlayers,
         bossHealth: data.bossHealth,
-        gameActive: true
+        gameActive: true,
       };
     });
 
-    // Dragon attack handler 
-    socket.on('dragonAttacked', (data) => {
+    // Dragon attack handler
+    socket.on("dragonAttacked", (data) => {
       // Only process if game is active
       if (!window.gameState || !window.gameState.gameActive) return;
 
@@ -526,49 +557,54 @@
       // Check if current player is targeted
       if (targetPlayerIds.includes(playerId)) {
         // Update local health
-        const healthDisplay = document.getElementById('healthDisplay');
+        const healthDisplay = document.getElementById("healthDisplay");
         if (!healthDisplay) return;
 
-        const currentHealth = parseInt(healthDisplay.textContent.split(': ')[1]);
+        const currentHealth = parseInt(
+          healthDisplay.textContent.split(": ")[1]
+        );
         const newHealth = Math.max(0, currentHealth - 5);
 
         // Update health display
         healthDisplay.textContent = `Your Health: ${newHealth}`;
 
         // Visual feedback for being hit
-        document.getElementById('overlay').style.backgroundColor = 'rgba(255, 0, 0, 0.3)';
+        document.getElementById("overlay").style.backgroundColor =
+          "rgba(255, 0, 0, 0.3)";
         setTimeout(() => {
-          document.getElementById('overlay').style.backgroundColor = 'transparent';
+          document.getElementById("overlay").style.backgroundColor =
+            "transparent";
         }, 300);
 
         // Check if player died
         if (newHealth <= 0) {
           // Notify server
-          socket.emit('playerDied', { gameId, playerId });
+          socket.emit("playerDied", { gameId, playerId });
 
           // Update UI to show death
-          healthDisplay.textContent = 'YOU DIED!';
-          healthDisplay.style.color = 'red';
+          healthDisplay.textContent = "YOU DIED!";
+          healthDisplay.style.color = "red";
 
-          const attackButton = document.getElementById('attackButton');
+          const attackButton = document.getElementById("attackButton");
           if (attackButton) {
             attackButton.disabled = true;
-            attackButton.textContent = 'DEFEATED';
-            attackButton.style.backgroundColor = '#888888';
+            attackButton.textContent = "DEFEATED";
+            attackButton.style.backgroundColor = "#888888";
           }
         }
       }
-
     });
 
     // Player death handler
-    socket.on('playerDied', (data) => {
+    socket.on("playerDied", (data) => {
       // Only process if game is active
       if (!window.gameState || !window.gameState.gameActive) return;
 
       // Find the player in local array
       const localPlayers = window.gameState.localPlayers;
-      const playerIndex = localPlayers.findIndex(p => p.id === data.playerId);
+      const playerIndex = localPlayers.findIndex(
+        (p) => p.id === data.playerId
+      );
 
       if (playerIndex !== -1) {
         // Mark player as dead
@@ -582,19 +618,19 @@
     });
 
     // Boss health update handler
-    socket.on('bossHealthUpdated', (data) => {
+    socket.on("bossHealthUpdated", (data) => {
       // Only process if game is active
       if (!window.gameState || !window.gameState.gameActive) return;
 
       window.gameState.bossHealth = data.health;
-      const gameInfoElement = document.getElementById('gameInfo');
+      const gameInfoElement = document.getElementById("gameInfo");
       if (gameInfoElement) {
         gameInfoElement.textContent = `Game Active! Boss Health: ${data.health}`;
       }
     });
 
     // Game end handler
-    socket.on('gameEnded', (data) => {
+    socket.on("gameEnded", (data) => {
       // Update game state
       if (window.gameState) {
         window.gameState.gameActive = false;
@@ -606,8 +642,8 @@
 
     // Helper functions to organize code
     function createGameUI() {
-      const gameUI = document.createElement('div');
-      gameUI.id = 'gameUI';
+      const gameUI = document.createElement("div");
+      gameUI.id = "gameUI";
       gameUI.innerHTML = `
         <div style="position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); 
                     background-color: rgba(0, 0, 0, 0.7); padding: 15px; border-radius: 10px;
@@ -622,37 +658,39 @@
       document.getElementById("overlay").appendChild(gameUI);
 
       // Add attack button functionality
-      document.getElementById('attackButton').addEventListener('click', () => {
-        // Simple hit detection - check if camera is pointing roughly toward dragon position
-        let hit = checkIntersection();
+      document
+        .getElementById("attackButton")
+        .addEventListener("click", () => {
+          // Simple hit detection - check if camera is pointing roughly toward dragon position
+          let hit = checkIntersection();
 
-        // Emit attack event to server
-        socket.emit('playerAttack', {
-          gameId: gameId,
-          playerId: playerId,
-          hit: hit
+          // Emit attack event to server
+          socket.emit("playerAttack", {
+            gameId: gameId,
+            playerId: playerId,
+            hit: hit,
+          });
+
+          // Show visual feedback for attack
+          const attackButton = document.getElementById("attackButton");
+          if (hit) {
+            attackButton.style.backgroundColor = "#00ff00";
+            setTimeout(() => {
+              attackButton.style.backgroundColor = "#ff4444";
+            }, 300);
+          } else {
+            attackButton.style.backgroundColor = "#888888";
+            setTimeout(() => {
+              attackButton.style.backgroundColor = "#ff4444";
+            }, 300);
+          }
         });
-
-        // Show visual feedback for attack
-        const attackButton = document.getElementById('attackButton');
-        if (hit) {
-          attackButton.style.backgroundColor = '#00ff00';
-          setTimeout(() => {
-            attackButton.style.backgroundColor = '#ff4444';
-          }, 300);
-        } else {
-          attackButton.style.backgroundColor = '#888888';
-          setTimeout(() => {
-            attackButton.style.backgroundColor = '#ff4444';
-          }, 300);
-        }
-      });
     }
 
     function initializeLocalPlayers(players) {
       const localPlayers = [];
       // For each player from server data, create a local representation
-      players.forEach(player => {
+      players.forEach((player) => {
         // Skip self in the visualization
         if (player.id === playerId) {
           localPlayers.push({
@@ -660,9 +698,8 @@
             name: player.name,
             isSelf: true,
             isDead: player.isDead,
-            health: 20 // Starting health
+            health: 20, // Starting health
           });
-
         } else {
           // For other players, create default positions around the player in a circle
           const angle = Math.random() * Math.PI * 2;
@@ -677,8 +714,8 @@
             position: {
               x: Math.cos(angle) * distance,
               y: 0, // Same height as player
-              z: Math.sin(angle) * distance
-            }
+              z: Math.sin(angle) * distance,
+            },
           });
 
           createPlayerVisual(player.id, player.name, angle, distance);
@@ -686,14 +723,16 @@
       });
       window.gameState = {
         localPlayers: localPlayers,
-        gameActive: true
+        gameActive: true,
       };
     }
 
     function createPlayerVisual(playerId, playerName, angle, distance) {
       // Create a visual representation for this player
       const playerGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.05, 8);
-      const playerMaterial = new THREE.MeshStandardMaterial({ color: 0x0088ff });
+      const playerMaterial = new THREE.MeshStandardMaterial({
+        color: 0x0088ff,
+      });
       const playerMesh = new THREE.Mesh(playerGeometry, playerMaterial);
 
       // Position the player
@@ -706,10 +745,9 @@
       scene.add(playerMesh);
     }
 
-
     function updatePlayerVisualForDeath(playerId) {
       const playerMesh = scene.children.find(
-        child => child.userData && child.userData.playerId === playerId
+        (child) => child.userData && child.userData.playerId === playerId
       );
 
       if (playerMesh) {
@@ -720,8 +758,7 @@
     }
 
     // Handle when a player attacks the dragon
-    socket.on('playerAttacked', (data) => {
-
+    socket.on("playerAttacked", (data) => {
       console.log("attacking");
       // Only process if game is active
       if (!window.gameState || !window.gameState.gameActive) return;
@@ -734,7 +771,7 @@
       // Find the player in local array
       const localPlayers = window.gameState.localPlayers;
       console.log(localPlayers);
-      const attackingPlayer = localPlayers.find(p => p.id === playerId);
+      const attackingPlayer = localPlayers.find((p) => p.id === playerId);
 
       // if (!attackingPlayer) return;
 
@@ -753,7 +790,7 @@
         window.gameState.bossHealth -= 10;
 
         // Update UI if necessary
-        const gameInfoElement = document.getElementById('gameInfo');
+        const gameInfoElement = document.getElementById("gameInfo");
         if (gameInfoElement) {
           gameInfoElement.textContent = `Game Active! Boss Health: ${window.gameState.bossHealth}`;
         }
@@ -763,6 +800,7 @@
       }
     });
 
+    const LASER_VARIANCE = 0.8; // Variance for laser effect
     // Helper function to create a laser effect
     function createLaserEffect(attackingPlayer, dragonPosition, hit) {
       // Get the position of the attacking player
@@ -774,7 +812,8 @@
       } else {
         // For other players, use their stored position
         const playerMesh = scene.children.find(
-          child => child.userData && child.userData.playerId === attackingPlayer.id
+          (child) =>
+            child.userData && child.userData.playerId === attackingPlayer.id
         );
 
         if (playerMesh) {
@@ -788,6 +827,15 @@
           );
         }
       }
+
+      const baseEndPosition = dragonPosition.clone();
+
+      // Add random variance
+      const variance = {
+        x: THREE.MathUtils.randFloatSpread(LASER_VARIANCE),
+        y: THREE.MathUtils.randFloatSpread(LASER_VARIANCE) + 1,
+        z: THREE.MathUtils.randFloatSpread(LASER_VARIANCE),
+      };
       // startPosition = camera.position;
 
       // Create end position for the dragon
@@ -796,30 +844,33 @@
       //   dragonPosition.y,
       //   dragonPosition.z
       // );
-      const endPosition = dragonPosition;
+      // const endPosition = dragonPosition;
+      // Apply variance while maintaining direction
+      const endPosition = baseEndPosition.add(
+        new THREE.Vector3(variance.x, variance.y, variance.z)
+      );
 
       // Create laser geometry (a line from player to dragon)
       const laserGeometry = new THREE.BufferGeometry().setFromPoints([
         startPosition,
-        endPosition
+        endPosition,
       ]);
 
       // Choose laser color based on hit (red for miss, bright red/orange for hit)
       const laserColor = hit ? 0xff4500 : 0xff0000;
       const laserMaterial = new THREE.LineBasicMaterial({
         color: laserColor,
-        linewidth: 3,
+        linewidth: 5,
         transparent: true,
-        opacity: 0.8
+        opacity: 0.8,
       });
-
-      // Create the laser line
       const laser = new THREE.Line(laserGeometry, laserMaterial);
-      scene.add(laser);
 
       // Add glow effect for hits
       if (hit) {
         // Create a point light at the dragon position to simulate impact
+        // Create the laser line
+        scene.add(laser);
         const impactLight = new THREE.PointLight(0xff4500, 2, 1);
         impactLight.position.copy(endPosition);
         scene.add(impactLight);
@@ -839,7 +890,9 @@
     // Helper function to show a visual effect when the dragon is hit
     function showDragonHitEffect() {
       // Get dragon position
-      const dragonPositionString = localStorage.getItem(`dragon_position_${gameId}_${window.playerId}`);
+      const dragonPositionString = localStorage.getItem(
+        `dragon_position_${gameId}_${window.playerId}`
+      );
       if (!dragonPositionString) return;
 
       const dragonPosition = JSON.parse(dragonPositionString);
@@ -853,7 +906,7 @@
         const particleMaterial = new THREE.MeshBasicMaterial({
           color: 0xff4500,
           transparent: true,
-          opacity: 0.8
+          opacity: 0.8,
         });
 
         const particle = new THREE.Mesh(particleGeometry, particleMaterial);
@@ -888,7 +941,7 @@
         }
 
         // Move particles outward and fade them
-        particles.children.forEach(particle => {
+        particles.children.forEach((particle) => {
           particle.position.add(particle.userData.velocity);
           particle.material.opacity -= 0.02;
           particle.scale.multiplyScalar(0.95);
@@ -929,23 +982,25 @@
       shakeCamera();
     }
 
-
     function showGameEndUI(data) {
-      const gameOverUI = document.createElement('div');
-      gameOverUI.style.position = 'fixed';
-      gameOverUI.style.top = '50%';
-      gameOverUI.style.left = '50%';
-      gameOverUI.style.transform = 'translate(-50%, -50%)';
-      gameOverUI.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-      gameOverUI.style.color = 'white';
-      gameOverUI.style.padding = '30px';
-      gameOverUI.style.borderRadius = '15px';
-      gameOverUI.style.textAlign = 'center';
-      gameOverUI.style.zIndex = '1000';
+      const gameOverUI = document.createElement("div");
+      gameOverUI.style.position = "fixed";
+      gameOverUI.style.top = "50%";
+      gameOverUI.style.left = "50%";
+      gameOverUI.style.transform = "translate(-50%, -50%)";
+      gameOverUI.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
+      gameOverUI.style.color = "white";
+      gameOverUI.style.padding = "30px";
+      gameOverUI.style.borderRadius = "15px";
+      gameOverUI.style.textAlign = "center";
+      gameOverUI.style.zIndex = "1000";
 
       gameOverUI.innerHTML = `
-        <h2>${data.playersWin ? 'VICTORY!' : 'DEFEAT!'}</h2>
-        <p>${data.playersWin ? 'The dragon has been defeated!' : 'The dragon was too powerful!'}</p>
+        <h2>${data.playersWin ? "VICTORY!" : "DEFEAT!"}</h2>
+        <p>${data.playersWin
+          ? "The dragon has been defeated!"
+          : "The dragon was too powerful!"
+        }</p>
         <p>Final boss health: ${data.bossHealth}</p>
         <button id="returnToLobby" style="padding: 10px 20px; margin-top: 20px; background-color: #4285f4;
                 color: white; border: none; border-radius: 5px; cursor: pointer;">
@@ -955,11 +1010,12 @@
 
       document.getElementById("overlay").appendChild(gameOverUI);
 
-      document.getElementById('returnToLobby').addEventListener('click', () => {
-        window.location.href = '/game-lobby';
-      });
+      document
+        .getElementById("returnToLobby")
+        .addEventListener("click", () => {
+          window.location.href = "/game-lobby";
+        });
     }
-
 
     // Animation loop
     function animate() {
