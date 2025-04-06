@@ -1,290 +1,834 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>HOLO Game Portal</title>
     <style>
-        body {
-            font-family: "Orbitron", "Audiowide", sans-serif;
-            background-color: #021526;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            color: white;
-            position: relative;
-            overflow-y: auto;
-        }
+      body {
+        font-family: "Orbitron", "Audiowide", sans-serif;
+        background-color: #021526;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        color: white;
+        position: relative;
+        overflow-y: hidden;
+      }
 
-        .grid-background {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 0;
-            opacity: 0.15;
-        }
+      .grid-background {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+        opacity: 0.15;
+      }
 
+      .container {
+        display: flex;
+        /* Mobile default: column layout, centered */
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        position: relative;
+        z-index: 1;
+        width: 90%; /* Give some padding on mobile */
+        max-width: 1000px; /* Max width for desktop */
+      }
+
+      .logo {
+        margin-bottom: 50px; /* Spacing for mobile */
+        /* On mobile, divs stack vertically by default */
+      }
+
+      .logo div {
+        font-size: 8rem;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: 2px;
+        text-shadow: 0 0 10px rgba(0, 255, 255, 0.7);
+        background: linear-gradient(to bottom, #ffffff, #4e9aff);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin: 0;
+      }
+
+      .button-container {
+        display: flex;
+        flex-direction: column; /* Buttons vertical on mobile */
+        gap: 20px;
+        width: 240px; /* Fixed width for vertical buttons */
+      }
+
+      button {
+        background-color: rgba(78, 154, 255, 0.2);
+        color: white;
+        border: 2px solid #4e9aff;
+        padding: 15px 0;
+        border-radius: 6px;
+        font-size: 1.1em;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-family: inherit;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        box-shadow: 0 0 15px rgba(78, 154, 255, 0.3);
+        min-width: 150px; /* Give buttons a minimum width for row layout */
+      }
+
+      button:hover {
+        background-color: rgba(78, 154, 255, 0.4);
+        transform: translateY(-2px);
+        box-shadow: 0 0 20px rgba(78, 154, 255, 0.5);
+      }
+
+      #create-game {
+        background-color: rgba(67, 160, 71, 0.2);
+        border-color: #43a047;
+        box-shadow: 0 0 15px rgba(67, 160, 71, 0.3);
+      }
+
+      #create-game:hover {
+        background-color: rgba(67, 160, 71, 0.4);
+        box-shadow: 0 0 20px rgba(67, 160, 71, 0.5);
+      }
+
+      /* Add futuristic fonts */
+      @import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap");
+      @import url("https://fonts.googleapis.com/css2?family=Audiowide&display=swap");
+
+      /* Responsive styles for smaller viewport heights (remains unchanged) */
+      @media (max-height: 700px) {
+        /* Only apply vertical adjustments if also on mobile width */
+        @media (max-width: 767px) {
+          .logo {
+            margin-bottom: 20px;
+          }
+          .logo div {
+            font-size: 3rem; /* Reduce the logo font size */
+          }
+          .button-container {
+            width: 200px;
+            gap: 15px;
+          }
+          button {
+            padding: 10px 0;
+            font-size: 1em;
+          }
+        }
+      }
+
+      /* --- NEW DESKTOP STYLES (Horizontal Logo, Buttons Below in Row) --- */
+      /* Apply these styles when screen width is 768px or wider */
+      @media (min-width: 768px) {
         .container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            position: relative;
-            z-index: 1;
+          /* Container remains column, centering logo block above button block */
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          width: 80%; /* Adjust container width */
         }
 
         .logo {
-            margin-bottom: 50px;
+          display: flex; /* Arrange letters horizontally */
+          flex-direction: row;
+          justify-content: center; /* Center the letters H O L O */
+          gap: 25px; /* Space between letters */
+          margin-bottom: 40px; /* Space between logo and buttons */
+          width: auto; /* Allow logo to take its content width */
         }
 
         .logo div {
-            font-size: 8rem;
-            font-weight: 800;
-            line-height: 1;
-            letter-spacing: 2px;
-            text-shadow: 0 0 10px rgba(0, 255, 255, 0.7);
-            background: linear-gradient(to bottom, #ffffff, #4e9aff);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin: 0;
+          font-size: 6rem; /* Adjust font size for horizontal layout */
+          line-height: 1; /* Ensure letters align well */
         }
 
         .button-container {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            width: 240px;
+          flex-direction: row; /* Arrange buttons horizontally */
+          justify-content: center; /* Center the buttons */
+          gap: 30px; /* Space between buttons */
+          width: auto; /* Allow container to fit buttons */
         }
 
         button {
-            background-color: rgba(78, 154, 255, 0.2);
-            color: white;
-            border: 2px solid #4e9aff;
-            padding: 15px 0;
-            border-radius: 6px;
-            font-size: 1.1em;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: inherit;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            box-shadow: 0 0 15px rgba(78, 154, 255, 0.3);
+          padding: 15px 30px; /* Adjust padding for horizontal buttons */
+          width: auto; /* Let button width adjust to content + padding */
         }
-
-        button:hover {
-            background-color: rgba(78, 154, 255, 0.4);
-            transform: translateY(-2px);
-            box-shadow: 0 0 20px rgba(78, 154, 255, 0.5);
-        }
-
-        #create-game {
-            background-color: rgba(67, 160, 71, 0.2);
-            border-color: #43a047;
-            box-shadow: 0 0 15px rgba(67, 160, 71, 0.3);
-        }
-
-        #create-game:hover {
-            background-color: rgba(67, 160, 71, 0.4);
-            box-shadow: 0 0 20px rgba(67, 160, 71, 0.5);
-        }
-
-        /* Add futuristic fonts */
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Audiowide&display=swap');
-
-        /* Responsive styles for smaller viewport heights */
-        @media (max-height: 700px) {
-            .logo {
-                margin-bottom: 20px;
-            }
-
-            .logo div {
-                font-size: 3rem;
-                /* Reduce the logo font size */
-            }
-
-            .button-container {
-                width: 200px;
-                gap: 15px;
-            }
-
-            button {
-                padding: 10px 0;
-                font-size: 1em;
-            }
-        }
+      }
     </style>
+  </head>
 
-</head>
+  <body>
+    <!-- SVG Grid Background (unchanged) -->
+    <svg
+      class="grid-background"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 1000 1000"
+      preserveAspectRatio="none"
+    >
+      <!-- Grid lines -->
 
-<body>
-    <!-- SVG Grid Background -->
-    <svg class="grid-background" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" preserveAspectRatio="none">
-        <!-- Grid lines -->
+      <!-- Horizontal lines -->
+      <line x1="0" y1="50" x2="1000" y2="50" stroke="#888888" stroke-width="1" />
+      <line
+        x1="0"
+        y1="100"
+        x2="1000"
+        y2="100"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="0"
+        y1="150"
+        x2="1000"
+        y2="150"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="0"
+        y1="200"
+        x2="1000"
+        y2="200"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="0"
+        y1="250"
+        x2="1000"
+        y2="250"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="0"
+        y1="300"
+        x2="1000"
+        y2="300"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="0"
+        y1="350"
+        x2="1000"
+        y2="350"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="0"
+        y1="400"
+        x2="1000"
+        y2="400"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="0"
+        y1="450"
+        x2="1000"
+        y2="450"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="0"
+        y1="500"
+        x2="1000"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="0"
+        y1="550"
+        x2="1000"
+        y2="550"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="0"
+        y1="600"
+        x2="1000"
+        y2="600"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="0"
+        y1="650"
+        x2="1000"
+        y2="650"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="0"
+        y1="700"
+        x2="1000"
+        y2="700"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="0"
+        y1="750"
+        x2="1000"
+        y2="750"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="0"
+        y1="800"
+        x2="1000"
+        y2="800"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="0"
+        y1="850"
+        x2="1000"
+        y2="850"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="0"
+        y1="900"
+        x2="1000"
+        y2="900"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="0"
+        y1="950"
+        x2="1000"
+        y2="950"
+        stroke="#888888"
+        stroke-width="1"
+      />
 
-        <!-- Horizontal lines -->
-        <line x1="0" y1="50" x2="1000" y2="50" stroke="#888888" stroke-width="1" />
-        <line x1="0" y1="100" x2="1000" y2="100" stroke="#888888" stroke-width="1" />
-        <line x1="0" y1="150" x2="1000" y2="150" stroke="#888888" stroke-width="1" />
-        <line x1="0" y1="200" x2="1000" y2="200" stroke="#888888" stroke-width="1" />
-        <line x1="0" y1="250" x2="1000" y2="250" stroke="#888888" stroke-width="1" />
-        <line x1="0" y1="300" x2="1000" y2="300" stroke="#888888" stroke-width="1" />
-        <line x1="0" y1="350" x2="1000" y2="350" stroke="#888888" stroke-width="1" />
-        <line x1="0" y1="400" x2="1000" y2="400" stroke="#888888" stroke-width="1" />
-        <line x1="0" y1="450" x2="1000" y2="450" stroke="#888888" stroke-width="1" />
-        <line x1="0" y1="500" x2="1000" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="0" y1="550" x2="1000" y2="550" stroke="#888888" stroke-width="1" />
-        <line x1="0" y1="600" x2="1000" y2="600" stroke="#888888" stroke-width="1" />
-        <line x1="0" y1="650" x2="1000" y2="650" stroke="#888888" stroke-width="1" />
-        <line x1="0" y1="700" x2="1000" y2="700" stroke="#888888" stroke-width="1" />
-        <line x1="0" y1="750" x2="1000" y2="750" stroke="#888888" stroke-width="1" />
-        <line x1="0" y1="800" x2="1000" y2="800" stroke="#888888" stroke-width="1" />
-        <line x1="0" y1="850" x2="1000" y2="850" stroke="#888888" stroke-width="1" />
-        <line x1="0" y1="900" x2="1000" y2="900" stroke="#888888" stroke-width="1" />
-        <line x1="0" y1="950" x2="1000" y2="950" stroke="#888888" stroke-width="1" />
+      <!-- Vertical lines -->
+      <line x1="50" y1="0" x2="50" y2="1000" stroke="#888888" stroke-width="1" />
+      <line
+        x1="100"
+        y1="0"
+        x2="100"
+        y2="1000"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="150"
+        y1="0"
+        x2="150"
+        y2="1000"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="200"
+        y1="0"
+        x2="200"
+        y2="1000"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="250"
+        y1="0"
+        x2="250"
+        y2="1000"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="300"
+        y1="0"
+        x2="300"
+        y2="1000"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="350"
+        y1="0"
+        x2="350"
+        y2="1000"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="400"
+        y1="0"
+        x2="400"
+        y2="1000"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="450"
+        y1="0"
+        x2="450"
+        y2="1000"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="500"
+        y1="0"
+        x2="500"
+        y2="1000"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="550"
+        y1="0"
+        x2="550"
+        y2="1000"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="600"
+        y1="0"
+        x2="600"
+        y2="1000"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="650"
+        y1="0"
+        x2="650"
+        y2="1000"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="700"
+        y1="0"
+        x2="700"
+        y2="1000"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="750"
+        y1="0"
+        x2="750"
+        y2="1000"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="800"
+        y1="0"
+        x2="800"
+        y2="1000"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="850"
+        y1="0"
+        x2="850"
+        y2="1000"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="900"
+        y1="0"
+        x2="900"
+        y2="1000"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="950"
+        y1="0"
+        x2="950"
+        y2="1000"
+        stroke="#888888"
+        stroke-width="1"
+      />
 
-        <!-- Vertical lines -->
-        <line x1="50" y1="0" x2="50" y2="1000" stroke="#888888" stroke-width="1" />
-        <line x1="100" y1="0" x2="100" y2="1000" stroke="#888888" stroke-width="1" />
-        <line x1="150" y1="0" x2="150" y2="1000" stroke="#888888" stroke-width="1" />
-        <line x1="200" y1="0" x2="200" y2="1000" stroke="#888888" stroke-width="1" />
-        <line x1="250" y1="0" x2="250" y2="1000" stroke="#888888" stroke-width="1" />
-        <line x1="300" y1="0" x2="300" y2="1000" stroke="#888888" stroke-width="1" />
-        <line x1="350" y1="0" x2="350" y2="1000" stroke="#888888" stroke-width="1" />
-        <line x1="400" y1="0" x2="400" y2="1000" stroke="#888888" stroke-width="1" />
-        <line x1="450" y1="0" x2="450" y2="1000" stroke="#888888" stroke-width="1" />
-        <line x1="500" y1="0" x2="500" y2="1000" stroke="#888888" stroke-width="1" />
-        <line x1="550" y1="0" x2="550" y2="1000" stroke="#888888" stroke-width="1" />
-        <line x1="600" y1="0" x2="600" y2="1000" stroke="#888888" stroke-width="1" />
-        <line x1="650" y1="0" x2="650" y2="1000" stroke="#888888" stroke-width="1" />
-        <line x1="700" y1="0" x2="700" y2="1000" stroke="#888888" stroke-width="1" />
-        <line x1="750" y1="0" x2="750" y2="1000" stroke="#888888" stroke-width="1" />
-        <line x1="800" y1="0" x2="800" y2="1000" stroke="#888888" stroke-width="1" />
-        <line x1="850" y1="0" x2="850" y2="1000" stroke="#888888" stroke-width="1" />
-        <line x1="900" y1="0" x2="900" y2="1000" stroke="#888888" stroke-width="1" />
-        <line x1="950" y1="0" x2="950" y2="1000" stroke="#888888" stroke-width="1" />
+      <!-- Perspective lines (unchanged) -->
+      <!-- Top left to center -->
+      <line x1="0" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1" />
+      <line
+        x1="100"
+        y1="0"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="200"
+        y1="0"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="300"
+        y1="0"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="400"
+        y1="0"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
 
-        <!-- Perspective lines -->
-        <!-- Top left to center -->
-        <line x1="0" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="100" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="200" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="300" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="400" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1" />
+      <!-- Top right to center -->
+      <line
+        x1="1000"
+        y1="0"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="900"
+        y1="0"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="800"
+        y1="0"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="700"
+        y1="0"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="600"
+        y1="0"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
 
-        <!-- Top right to center -->
-        <line x1="1000" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="900" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="800" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="700" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="600" y1="0" x2="500" y2="500" stroke="#888888" stroke-width="1" />
+      <!-- Bottom left to center -->
+      <line
+        x1="0"
+        y1="1000"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="100"
+        y1="1000"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="200"
+        y1="1000"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="300"
+        y1="1000"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="400"
+        y1="1000"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
 
-        <!-- Bottom left to center -->
-        <line x1="0" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="100" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="200" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="300" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="400" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1" />
+      <!-- Bottom right to center -->
+      <line
+        x1="1000"
+        y1="1000"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="900"
+        y1="1000"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="800"
+        y1="1000"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="700"
+        y1="1000"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="600"
+        y1="1000"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
 
-        <!-- Bottom right to center -->
-        <line x1="1000" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="900" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="800" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="700" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="600" y1="1000" x2="500" y2="500" stroke="#888888" stroke-width="1" />
+      <!-- Left edge to center -->
+      <line
+        x1="0"
+        y1="100"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="0"
+        y1="200"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="0"
+        y1="300"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="0"
+        y1="400"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="0"
+        y1="600"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="0"
+        y1="700"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="0"
+        y1="800"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="0"
+        y1="900"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
 
-        <!-- Left edge to center -->
-        <line x1="0" y1="100" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="0" y1="200" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="0" y1="300" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="0" y1="400" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="0" y1="600" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="0" y1="700" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="0" y1="800" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="0" y1="900" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-
-        <!-- Right edge to center -->
-        <line x1="1000" y1="100" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="1000" y1="200" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="1000" y1="300" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="1000" y1="400" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="1000" y1="600" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="1000" y1="700" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="1000" y1="800" x2="500" y2="500" stroke="#888888" stroke-width="1" />
-        <line x1="1000" y1="900" x2="500" y2="500" stroke="#888888" stroke-width="1" />
+      <!-- Right edge to center -->
+      <line
+        x1="1000"
+        y1="100"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="1000"
+        y1="200"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="1000"
+        y1="300"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="1000"
+        y1="400"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="1000"
+        y1="600"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="1000"
+        y1="700"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="1000"
+        y1="800"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
+      <line
+        x1="1000"
+        y1="900"
+        x2="500"
+        y2="500"
+        stroke="#888888"
+        stroke-width="1"
+      />
     </svg>
 
     <div class="container">
-        <div class="logo">
-            <div>H</div>
-            <div>O</div>
-            <div>L</div>
-            <div>O</div>
-        </div>
-        <div class="button-container">
-            <button id="join-game">Join Game</button>
-            <button id="create-game">Create Game</button>
-        </div>
+      <div class="logo">
+        <div>H</div>
+        <div>O</div>
+        <div>L</div>
+        <div>O</div>
+      </div>
+      <div class="button-container">
+        <button id="join-game">Join Game</button>
+        <button id="create-game">Create Game</button>
+      </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // Connect to Socket.io
-            const socket = io();
-            const createGameBtn = document.getElementById('create-game');
-            const joinGameBtn = document.getElementById('join-game');
+      document.addEventListener("DOMContentLoaded", function () {
+        // Connect to Socket.io
+        const socket = io();
+        const createGameBtn = document.getElementById("create-game");
+        const joinGameBtn = document.getElementById("join-game");
 
-            // Setup event listeners for socket events
-            socket.on('createSuccess', function (data) {
-                console.log('Game created successfully:', data);
+        // Setup event listeners for socket events
+        socket.on("createSuccess", function (data) {
+          console.log("Game created successfully:", data);
 
-                // Store player ID and host status in localStorage
-                localStorage.setItem('currentPlayerId', data.playerId);
-                localStorage.setItem('isHost', data.isHost);
+          // Store player ID and host status in localStorage
+          localStorage.setItem("currentPlayerId", data.playerId);
+          localStorage.setItem("isHost", data.isHost);
 
-                // Navigate to the game setup page
-                window.location.href = `/game-setup?id=${data.gameId}`;
-            });
-
-            socket.on('createError', function (error) {
-                createGameBtn.classList.remove('loading');
-                createGameBtn.textContent = 'Create Game';
-                createGameBtn.disabled = false;
-                alert(error.message || 'Failed to create game');
-            });
-
-            // Join Game button event listener
-            joinGameBtn.addEventListener('click', function () {
-                // Redirect to the game lobby page where users can enter a game code
-                window.location.href = '/game-lobby';
-            });
-
-            // Create Game button event listener
-            createGameBtn.addEventListener('click', function () {
-                // Prevent double-clicking
-                if (createGameBtn.disabled) return;
-
-                // Show loading state
-                createGameBtn.disabled = true;
-                createGameBtn.textContent = 'Creating Game...';
-                createGameBtn.classList.add('loading');
-
-                // Get username from localStorage or use default
-                const hostName = localStorage.getItem('username') || localStorage.getItem('playerName') || 'Anonymous Player';
-
-                // Create a new game via socket
-                socket.emit('createGame', { hostName });
-            });
+          // Navigate to the game setup page
+          window.location.href = `/game-setup?id=${data.gameId}`;
         });
-    </script>
-</body>
 
+        socket.on("createError", function (error) {
+          createGameBtn.classList.remove("loading");
+          createGameBtn.textContent = "Create Game";
+          createGameBtn.disabled = false;
+          alert(error.message || "Failed to create game");
+        });
+
+        // Join Game button event listener
+        joinGameBtn.addEventListener("click", function () {
+          // Redirect to the game lobby page where users can enter a game code
+          window.location.href = "/game-lobby";
+        });
+
+        // Create Game button event listener
+        createGameBtn.addEventListener("click", function () {
+          // Prevent double-clicking
+          if (createGameBtn.disabled) return;
+
+          // Show loading state
+          createGameBtn.disabled = true;
+          createGameBtn.textContent = "Creating Game...";
+          createGameBtn.classList.add("loading");
+
+          // Get username from localStorage or use default
+          const hostName =
+            localStorage.getItem("username") ||
+            localStorage.getItem("playerName") ||
+            "Anonymous Player";
+
+          // Create a new game via socket
+          socket.emit("createGame", { hostName });
+        });
+      });
+    </script>
+  </body>
 </html>

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { v4 as uuidv4 } from 'uuid'; // For generating unique game IDs
 import { Server } from 'socket.io';
+import { log } from 'console';
 
 // Get current file directory with ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -273,6 +274,28 @@ io.on('connection', (socket) => {
     console.log(`Game ${gameId} entered calibration phase by host ${hostPlayer.name}`);
   });
 
+  socket.on('disconnectPlayer', ({ gameId, playerId }) => {
+    if (!activeGames[gameId]) return;
+
+    const player = activeGames[gameId].players.find(p => p.id === playerId);
+    if (player) {
+      player.disconnected = true;
+      player.disconnectedAt = new Date();
+
+      // Notify other players about the updated status
+      io.to(gameId).emit('playerListUpdated', {
+        players: activeGames[gameId].players.map(p => ({
+          id: p.id,
+          name: p.name,
+          isHost: p.isHost,
+          isReady: p.isReady,
+          isDead: p.isDead,
+          disconnected: p.disconnected
+        }))
+      });
+    }
+  });
+
   // Player is ready after calibration
   socket.on('playerReady', ({ gameId, playerId }) => {
     if (!activeGames[gameId] || activeGames[gameId].status !== 'calibration') {
@@ -292,7 +315,8 @@ io.on('connection', (socket) => {
 
 
     // Check if all players are ready
-    const allReady = activeGames[gameId].players.every(p => p.isReady);
+    console.log(activeGames[gameId].players);
+    const allReady = activeGames[gameId].players.filter(p => !p.disconnected).every(p => p.isReady);
     if (allReady) {
       console.log("EVERYONE IS READY!!");
       // If all players are ready, start the actual game
@@ -326,8 +350,10 @@ io.on('connection', (socket) => {
 
       // Broadcast updated boss health
       io.to(gameId).emit('bossHealthUpdated', {
+        gameId: gameId,
         health: activeGames[gameId].bossHealth
       });
+
 
       // Check if boss is defeated
       if (activeGames[gameId].bossHealth <= 0) {
@@ -353,6 +379,7 @@ io.on('connection', (socket) => {
 
     // Broadcast to all clients that this player has died
     io.to(gameId).emit('playerDied', {
+      gameId: gameId,
       playerId: playerId
     });
 
@@ -364,6 +391,8 @@ io.on('connection', (socket) => {
   });
   // Force start
   socket.on('forceStart', (data) => {
+    console.log("FORCING START");
+
     const gameId = data.gameId; // Get the gameId from the emitted object
     startActualGame(gameId);
   });
@@ -447,7 +476,7 @@ io.on('connection', (socket) => {
 
 // Helper function to start the actual game after calibration
 function startActualGame(gameId) {
-  console.log(activeGames[gameId]);
+  console.log("activeGames[gameId]:" + activeGames[gameId]);
   if (!activeGames[gameId]) return;
 
   // Update game status
@@ -470,6 +499,7 @@ function startActualGame(gameId) {
       isDead: p.isDead || false
     }))
   });
+  console.log("emitted gameStarted");
 
   // Start dragon attack timer (every 10 seconds)
   activeGames[gameId].gameTimers.dragonAttack = setInterval(() => {
@@ -709,15 +739,11 @@ app.get('/game-setup', (req, res) => {
   res.sendFile(join(__dirname, 'public', 'game-setup.html'));
 });
 
-// Serve game calibration page
-app.get('/game-calibration', (req, res) => {
-  res.sendFile(join(__dirname, 'public', 'game-calibration.html'));
+app.get('/overview', (req, res) => {
+  res.sendFile(join(__dirname, 'public', 'overview.html'));
 });
 
-// Serve game play page
-app.get('/game-play', (req, res) => {
-  res.sendFile(join(__dirname, 'public', 'game-play.html'));
-});
+
 
 // Start the server
 const PORT = process.env.PORT || 3000;

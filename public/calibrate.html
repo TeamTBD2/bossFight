@@ -400,11 +400,13 @@
         } else {
           arButton.textContent = "AR Not Supported";
           arButton.disabled = true;
+          window.location.href = `/overview?gameId=${gameId}&playerId=${playerId}`;
         }
       });
     } else {
       arButton.textContent = "XR Not Supported";
       arButton.disabled = true;
+      window.location.href = `/overview?gameId=${gameId}&playerId=${playerId}`;
     }
 
     function startAR() {
@@ -560,6 +562,10 @@
           document.getElementById("overlay").style.backgroundColor =
             "transparent";
         }, 300);
+
+        if (navigator.vibrate) {
+          navigator.vibrate(300);
+        }
 
         // Check if player died
         if (newHealth <= 0) {
