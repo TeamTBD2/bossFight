@@ -671,28 +671,30 @@
 
     // Handle when a player attacks the dragon
     socket.on('playerAttacked', (data) => {
+
+      console.log("attacking");
       // Only process if game is active
       if (!window.gameState || !window.gameState.gameActive) return;
 
       const { playerId, hit } = data;
 
-      // Skip if it's our own attack (we've already shown feedback locally)
-      if (playerId === window.playerId) return;
+      // // Skip if it's our own attack (we've already shown feedback locally)
+      // if (playerId === window.playerId) return;
 
       // Find the player in local array
       const localPlayers = window.gameState.localPlayers;
       const attackingPlayer = localPlayers.find(p => p.id === playerId);
 
-      if (!attackingPlayer) return;
+      // if (!attackingPlayer) return;
 
       // Get dragon position from localStorage
-      const dragonPositionString = localStorage.getItem(`dragon_position_${gameId}_${window.playerId}`);
-      if (!dragonPositionString) return;
+      // const dragonPositionString = localStorage.getItem(`dragon_position_${gameId}_${window.playerId}`);
+      // if (!dragonPositionString) return; dragon.model.position
 
-      const dragonPosition = JSON.parse(dragonPositionString);
-
+      // const dragonPosition = JSON.parse(dragonPositionString);
+      console.log("creating laser");
       // Create a laser effect (red line) from player to dragon
-      createLaserEffect(attackingPlayer, dragonPosition, hit);
+      createLaserEffect(attackingPlayer, dragon.model.position, hit);
 
       // If the attack hit, reduce dragon health and show visual feedback
       if (hit) {
@@ -715,33 +717,35 @@
       // Get the position of the attacking player
       let startPosition;
 
-      if (attackingPlayer.isSelf) {
-        // If it's the player themselves (shouldn't happen based on early return, but just in case)
-        startPosition = new THREE.Vector3(0, 0, 0); // Use camera position
-      } else {
-        // For other players, use their stored position
-        const playerMesh = scene.children.find(
-          child => child.userData && child.userData.playerId === attackingPlayer.id
-        );
+      // if (attackingPlayer.isSelf) {
+      //   // If it's the player themselves (shouldn't happen based on early return, but just in case)
+      //   startPosition = new THREE.Vector3(0, 0, 0); // Use camera position
+      // } else {
+      //   // For other players, use their stored position
+      //   const playerMesh = scene.children.find(
+      //     child => child.userData && child.userData.playerId === attackingPlayer.id
+      //   );
 
-        if (playerMesh) {
-          startPosition = playerMesh.position.clone();
-        } else {
-          // If no mesh, use the stored position
-          startPosition = new THREE.Vector3(
-            attackingPlayer.position.x,
-            attackingPlayer.position.y,
-            attackingPlayer.position.z
-          );
-        }
-      }
+      //   if (playerMesh) {
+      //     startPosition = playerMesh.position.clone();
+      //   } else {
+      //     // If no mesh, use the stored position
+      //     startPosition = new THREE.Vector3(
+      //       attackingPlayer.position.x,
+      //       attackingPlayer.position.y,
+      //       attackingPlayer.position.z
+      //     );
+      //   }
+      // }
+      startPosition = new THREE.Vector3(0, 0, 0);
 
       // Create end position for the dragon
-      const endPosition = new THREE.Vector3(
-        dragonPosition.x,
-        dragonPosition.y,
-        dragonPosition.z
-      );
+      // const endPosition = new THREE.Vector3(
+      //   dragonPosition.x,
+      //   dragonPosition.y,
+      //   dragonPosition.z
+      // );
+      const endPosition = dragonPosition;
 
       // Create laser geometry (a line from player to dragon)
       const laserGeometry = new THREE.BufferGeometry().setFromPoints([
