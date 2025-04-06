@@ -1,4 +1,4 @@
-# Holo
+# Holo (GDG on Campus Challenge)
 
 ## Team Info
 - **Total Team Members: 4** 
