@@ -565,6 +565,7 @@ function endGame(gameId, playersWin) {
 
   // Notify all players about game end
   io.to(gameId).emit('gameEnded', {
+    gameId: gameId,
     playersWin: playersWin,
     players: activeGames[gameId].players.map(p => ({
       id: p.id,

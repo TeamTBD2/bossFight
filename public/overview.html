@@ -516,6 +516,11 @@
                     if (initialBossHealth > 0) setDragonHealth(data.bossHealth);
                     // Optionally display win/loss message
                     const resultMessage = data.playersWin ? "Players Win!" : "Dragon Wins!";
+                    if (data.playersWin) {
+                        window.location.href = "/endgameWIN.html";
+                    } else {
+                        window.location.href = "/endgameLOSS.html";
+                    }
                     console.log(`Game Over: ${resultMessage}`);
                     // You could update the UI further here (e.g., show a banner)
                 }
