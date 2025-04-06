@@ -268,6 +268,16 @@
     // Check connection status
     socket.on('connect', () => {
       console.log('Connected to server with socket ID:', socket.id);
+      if (gameId && playerId) {
+          console.log(`🚀 Emitting reconnectPlayer for game ${gameId}, player ${playerId} using socket ${socket.id}`);
+          // Tell the server to associate this new socket with the existing player and join the room
+          socket.emit('reconnectPlayer', { gameId, playerId });
+      } else {
+          console.error('❌ Cannot reconnect: Missing gameId or playerId on calibration page load.');
+          gameInfoElement.textContent = 'Error: Missing game/player info. Cannot join game room.';
+          gameInfoElement.style.backgroundColor = 'rgba(255, 0, 0, 0.7)';
+          // Consider disabling UI or redirecting
+      }
     });
     
     socket.on('connect_error', (error) => {
@@ -426,8 +436,7 @@
 
     // Set up all socket event handlers at the same level
     socket.on('gameStarted', (data) => {
-      // Hide all existing UI elements (calibration controls)
-      console.log("trying to hide ui elemetnts");
+      // Hide all existing UI elements (calibration controls
       
       document.querySelector('.control-panel').style.display = 'none';
       document.getElementById('readyButton').style.display = 'none';
