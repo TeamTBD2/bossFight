@@ -453,6 +453,15 @@
       dragon.model.position.y -= moveDistance;
     });
 
+    document.getElementById('forceStartButton').addEventListener('click', () => {
+      if (!gameId || !playerId) {
+        alert('Missing game or player information!');
+        return;
+      }
+      console.log(gameId);
+      socket.emit('forceStart', { gameId: gameId });
+    });
+
     // Ready button event listener
     document.getElementById('readyButton').addEventListener('click', () => {
       if (!gameId || !playerId) {
@@ -486,6 +495,7 @@
 
       document.querySelector('.control-panel').style.display = 'none';
       document.getElementById('readyButton').style.display = 'none';
+      document.getElementById('forceStart').style.display = 'none';
 
       // Update game info to show we're in active game mode
       const gameInfoElement = document.getElementById('gameInfo');

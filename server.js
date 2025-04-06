@@ -362,6 +362,11 @@ io.on('connection', (socket) => {
       endGame(gameId, false); // Dragon wins
     }
   });
+  // Force start
+  socket.on('forceStart', (data) => {
+    const gameId = data.gameId; // Get the gameId from the emitted object
+    startActualGame(gameId);
+  });
 
   // Handle disconnections
   socket.on('disconnect', () => {
@@ -442,10 +447,13 @@ io.on('connection', (socket) => {
 
 // Helper function to start the actual game after calibration
 function startActualGame(gameId) {
+  console.log(activeGames[gameId]);
   if (!activeGames[gameId]) return;
 
   // Update game status
   activeGames[gameId].status = 'active';
+
+  console.log(activeGames[gameId].status);
 
   // Reset player readiness for game mechanics
   activeGames[gameId].players.forEach(player => {
