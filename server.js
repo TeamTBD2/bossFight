@@ -40,6 +40,8 @@ io.on('connection', (socket) => {
     // Find the player in the game
     const playerIndex = activeGames[gameId].players.findIndex(p => p.id === playerId);
 
+    activeGames[gameId].players[playerIndex].disconnected = false;
+
     if (playerIndex !== -1) {
       // Update socket ID mapping
       const oldSocketId = activeGames[gameId].players[playerIndex].socketId;
@@ -287,8 +289,8 @@ io.on('connection', (socket) => {
 
     // Mark the player as ready
     activeGames[gameId].players[playerIndex].isReady = true;
-    
-    
+
+
     // Check if all players are ready
     const allReady = activeGames[gameId].players.every(p => p.isReady);
     if (allReady) {
@@ -296,7 +298,7 @@ io.on('connection', (socket) => {
       // If all players are ready, start the actual game
       startActualGame(gameId);
     }
-    
+
     console.log(`Player ${playerId} is ready in game ${gameId}`);
   });
 
@@ -321,12 +323,12 @@ io.on('connection', (socket) => {
     // If the attack hit, reduce boss health
     if (hit) {
       activeGames[gameId].bossHealth -= 1;
-      
+
       // Broadcast updated boss health
       io.to(gameId).emit('bossHealthUpdated', {
         health: activeGames[gameId].bossHealth
       });
-      
+
       // Check if boss is defeated
       if (activeGames[gameId].bossHealth <= 0) {
         endGame(gameId, true); // Players win
@@ -348,17 +350,22 @@ io.on('connection', (socket) => {
 
     // Mark player as dead on the server
     activeGames[gameId].players[playerIndex].isDead = true;
-    
+
     // Broadcast to all clients that this player has died
     io.to(gameId).emit('playerDied', {
       playerId: playerId
     });
-    
+
     // Check if all players are dead
     const allPlayersDead = activeGames[gameId].players.every(p => p.isDead || p.disconnected);
     if (allPlayersDead) {
       endGame(gameId, false); // Dragon wins
     }
+  });
+  // Force start
+  socket.on('forceStart', (data) => {
+    const gameId = data.gameId; // Get the gameId from the emitted object
+    startActualGame(gameId);
   });
 
   // Handle disconnections
@@ -440,16 +447,19 @@ io.on('connection', (socket) => {
 
 // Helper function to start the actual game after calibration
 function startActualGame(gameId) {
+  console.log(activeGames[gameId]);
   if (!activeGames[gameId]) return;
-  
+
   // Update game status
   activeGames[gameId].status = 'active';
-  
+
+  console.log(activeGames[gameId].status);
+
   // Reset player readiness for game mechanics
   activeGames[gameId].players.forEach(player => {
     player.isReady = false;
   });
-  
+
   // Notify all players that the game has started
   io.to(gameId).emit('gameStarted', {
     gameId: gameId,
@@ -460,69 +470,69 @@ function startActualGame(gameId) {
       isDead: p.isDead || false
     }))
   });
-  
+
   // Start dragon attack timer (every 10 seconds)
   activeGames[gameId].gameTimers.dragonAttack = setInterval(() => {
     dragonAttack(gameId);
   }, 10000);
-  
+
   // Set game end timer (90 seconds)
   activeGames[gameId].gameTimers.gameEnd = setTimeout(() => {
     // If time runs out, dragon wins
     endGame(gameId, false);
   }, 90000);
-  
+
   console.log(`Game ${gameId} fully started, dragon will attack every 10 seconds, game will end in 90 seconds`);
 }
 
 // Dragon attack function
 function dragonAttack(gameId) {
   if (!activeGames[gameId] || activeGames[gameId].status !== 'active') return;
-  
+
   const game = activeGames[gameId];
   const activePlayers = game.players.filter(p => !p.isDead && !p.disconnected);
-  
+
   // If no active players, end the game
   if (activePlayers.length === 0) {
     endGame(gameId, false);
     return;
   }
-  
+
   // Select up to 5 random players to attack
   const targetCount = Math.min(5, activePlayers.length);
   const targetPlayers = [];
-  
+
   // Fisher-Yates shuffle for random selection
   const shuffled = [...activePlayers];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
-  
+
   // Take the first 'targetCount' players
   for (let i = 0; i < targetCount; i++) {
     targetPlayers.push(shuffled[i].id);
   }
-  
+
   // Notify all players about the dragon attack - just send IDs of attacked players
   io.to(gameId).emit('dragonAttacked', {
     targetPlayerIds: targetPlayers
   });
-  
+
   console.log(`Dragon attacked in game ${gameId}, targeting ${targetPlayers.length} players`);
 }
 
 // End game function
 function endGame(gameId, playersWin) {
   if (!activeGames[gameId]) return;
-  
+
   // Clear all timers
   clearInterval(activeGames[gameId].gameTimers.dragonAttack);
   clearTimeout(activeGames[gameId].gameTimers.gameEnd);
-  
+
   // Update game status
   activeGames[gameId].status = 'finished';
-  
+
   // Notify all players about game end
   io.to(gameId).emit('gameEnded', {
     playersWin: playersWin,
@@ -533,9 +543,9 @@ function endGame(gameId, playersWin) {
     })),
     bossHealth: activeGames[gameId].bossHealth
   });
-  
+
   console.log(`Game ${gameId} ended, players ${playersWin ? 'won' : 'lost'}`);
-  
+
   // Keep the game data for some time before cleaning up
   setTimeout(() => {
     if (activeGames[gameId]) {
