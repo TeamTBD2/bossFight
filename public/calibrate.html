@@ -204,6 +204,21 @@
       z-index: 999;
       text-align: center;
     }
+
+    #forceStart {
+      position: fixed;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 10px 15px;
+      border-radius: 5px;
+      font-size: 14px;
+      z-index: 999;
+      text-align: center;
+      display: none;
+    }
   </style>
 </head>
 
@@ -212,6 +227,9 @@
 
   <div id="overlay">
     <div id="gameInfo">Loading game info...</div>
+    <div id="forceStart">
+      <button id="forceStartButton">Start</button>
+    </div>
     <div id="ar-ui">
       <div id="crosshair"></div>
     </div>
@@ -256,6 +274,29 @@
     const urlParams = new URLSearchParams(window.location.search);
     const gameId = urlParams.get('gameId');
     const playerId = urlParams.get('playerId');
+
+    fetch(`/api/game/${gameId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (!data.success) {
+          console.error("Game not found");
+          return;
+        }
+
+        const players = data.game.players;
+        // Find the host
+        const hostPlayer = players.find(p => p.isHost);
+        if (hostPlayer) {
+          if (hostPlayer.id === playerId) {
+            document.getElementById('forceStart').style.display = 'flex';
+          }
+          // You can now use hostPlayer.id as the host's ID
+        } else {
+          console.warn("No host found in this game");
+        }
+      })
+      .catch(err => console.error("Error fetching game data:", err));
+
 
     // Display game info
     const gameInfoElement = document.getElementById('gameInfo');
