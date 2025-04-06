@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { v4 as uuidv4 } from 'uuid'; // For generating unique game IDs
 import { Server } from 'socket.io';
+import { log } from 'console';
 
 // Get current file directory with ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -167,6 +168,8 @@ io.on('connection', (socket) => {
       bossHealth: 0, // Will be set when the game starts
       gameTimers: {} // To store interval IDs for game mechanics
     };
+    console.log("activeGames[gameId].host.id:"+activeGames[gameId].host.id);
+    console.log("hostId:"+hostId);
 
     // Add host as first player
     activeGames[gameId].players.push({
@@ -178,7 +181,12 @@ io.on('connection', (socket) => {
       isReady: false,
       isDead: false
     });
+    console.log("hostId2:"+hostId);
+    console.log("test:"+activeGames[gameId].players[0]);
 
+    console.log("test:"+activeGames[gameId].players[0].id);
+    console.log("test:"+activeGames[gameId].players[0].id==hostId);
+    
     // Update the player socket map
     playerSocketMap[hostId] = socket.id;
 
@@ -329,6 +337,8 @@ io.on('connection', (socket) => {
       
       // Check if boss is defeated
       if (activeGames[gameId].bossHealth <= 0) {
+        console.log("boss was defeated");
+        
         endGame(gameId, true); // Players win
       }
     }
@@ -357,6 +367,8 @@ io.on('connection', (socket) => {
     // Check if all players are dead
     const allPlayersDead = activeGames[gameId].players.every(p => p.isDead || p.disconnected);
     if (allPlayersDead) {
+      console.log("all players died L");
+      
       endGame(gameId, false); // Dragon wins
     }
   });
@@ -427,6 +439,8 @@ io.on('connection', (socket) => {
               if (activeGames[gameId].status === 'active') {
                 const allPlayersDead = activeGames[gameId].players.every(p => p.isDead || p.disconnected);
                 if (allPlayersDead) {
+                  console.log("user disconnected");
+                  
                   endGame(gameId, false); // Dragon wins
                 }
               }
@@ -469,6 +483,7 @@ function startActualGame(gameId) {
   // Set game end timer (90 seconds)
   activeGames[gameId].gameTimers.gameEnd = setTimeout(() => {
     // If time runs out, dragon wins
+    console.log("Time ran out");
     endGame(gameId, false);
   }, 90000);
   
@@ -478,12 +493,15 @@ function startActualGame(gameId) {
 // Dragon attack function
 function dragonAttack(gameId) {
   if (!activeGames[gameId] || activeGames[gameId].status !== 'active') return;
-  
+ 
+  console.log("activeGames[gameId]:"+activeGames[gameId]);
   const game = activeGames[gameId];
   const activePlayers = game.players.filter(p => !p.isDead && !p.disconnected);
-  
+  console.log("game.players:"+game.players.name);
   // If no active players, end the game
   if (activePlayers.length === 0) {
+    console.log("no active players so end game");
+    
     endGame(gameId, false);
     return;
   }
