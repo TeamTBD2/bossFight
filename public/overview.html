@@ -234,15 +234,17 @@
     </div> <!-- End Content Wrapper -->
 
     <script>
-        
+        const socket = io(); // Initialize socket connection
 
         const timeLeftElement = document.getElementById('time-left');
         const aliveCountElement = document.getElementById('alive-count');
         const healthBar = document.getElementById('dragon-health');
+        const forceStartButton = document.getElementById('forceStartButton1'); // Get the button
 
         let timerInterval = null;
         let initialBossHealth = 0; // To calculate percentage
         let currentGameId = null; // Store the game ID
+        let currentPlayerId = null; // Store the player ID (Added)
 
         // --- Helper Functions ---
         function updateTimerDisplay(seconds) {
@@ -338,37 +340,53 @@
 
         // --- Socket.IO Connection and Event Handling ---
         document.addEventListener('DOMContentLoaded', () => {
-            // Get gameId from URL query parameter
+            // Get gameId and playerId from URL query parameters
             const urlParams = new URLSearchParams(window.location.search);
             currentGameId = urlParams.get('gameId');
+            currentPlayerId = urlParams.get('playerId'); // <-- Added playerId extraction
 
+            // --- Initial Checks ---
             if (!currentGameId) {
                 console.error("No gameId found in URL!");
-                // Handle error: display message, redirect, etc.
-                document.body.innerHTML = "<h1>Error: Game ID not specified.</h1>";
-                return;
+                document.body.innerHTML = "<h1>Error: Game ID not specified in URL.</h1>";
+                return; // Stop execution if gameId is missing
+            }
+            if (!currentPlayerId) { // <-- Added check for playerId
+                console.error("No playerId found in URL!");
+                document.body.innerHTML = "<h1>Error: Player ID not specified in URL.</h1>";
+                return; // Stop execution if playerId is missing
             }
 
-            console.log(`Connecting to Socket.IO for game: ${currentGameId}`);
-            const socket = io(); // Connect to the server
+            console.log(`Game ID: ${currentGameId}, Player ID: ${currentPlayerId}`); // Log extracted IDs
+
+            // --- Socket Event Listeners ---
 
             socket.on('connect', () => {
                 console.log('Connected to server with socket ID:', socket.id);
-                // Request the current game status once connected
+
+                // Use the extracted IDs (already checked they exist above)
+                console.log(`🚀 Emitting reconnectPlayer for game ${currentGameId}, player ${currentPlayerId} using socket ${socket.id}`);
+                // Tell the server to associate this new socket with the existing player and join the room
+                socket.emit('reconnectPlayer', { gameId: currentGameId, playerId: currentPlayerId });
+
+                // Request the current game status after attempting reconnect/join
+                // Server might send status automatically after reconnect, but this ensures we get it
                 console.log(`Requesting status for game ${currentGameId}`);
                 socket.emit('getGameStatus', { gameId: currentGameId });
             });
 
-            socket.on('disconnect', () => {
-                console.log('Disconnected from server.');
+            socket.on('disconnect', (reason) => {
+                console.log('Disconnected from server. Reason:', reason);
                 stopClientTimer();
                 // Optionally display a disconnected message
+                // Consider implementing reconnection logic here if needed beyond the default
             });
 
             socket.on('connect_error', (err) => {
                 console.error('Connection Error:', err);
                 stopClientTimer();
-                // Optionally display an error message
+                // Optionally display an error message to the user
+                document.body.innerHTML = `<h1>Connection Error: ${err.message}. Please try refreshing.</h1>`;
             });
 
             // Listen for the initial/updated game status
@@ -396,36 +414,26 @@
                 }
             });
 
-            //////////////////////////////////////////////////////////////////////////////
-            document.getElementById('forceStartButton1').addEventListener('click', () => {
-                if (!currentGameId) {
-                    alert('Missing game or player information!');
-                    return;
-                }
-                console.log(currentGameId);
-                socket.emit('forceStart', { gameId: currentGameId });
-            }); 
-
-            ////////////////////////////////////////////////////////////////////////////////
-
             // Listen for boss health updates
             socket.on('bossHealthUpdated', (data) => {
                 console.log('Received bossHealthUpdated event');
-                // Assuming this event is broadcast to the correct game room (gameId)
-                if (initialBossHealth > 0) { // Ensure we have the base health
-                    setDragonHealth(data.health);
-                } else {
-                    // If initial health isn't set, maybe request full status again?
-                    console.warn("Received health update but initial health is unknown. Requesting full status.");
-                    socket.emit('getGameStatus', { gameId: currentGameId });
+                // Ensure the update is for the current game
+                if (data && data.gameId === currentGameId) {
+                    if (initialBossHealth > 0) { // Ensure we have the base health
+                        setDragonHealth(data.health);
+                    } else {
+                        // If initial health isn't set, maybe request full status again?
+                        console.warn("Received health update but initial health is unknown. Requesting full status.");
+                        socket.emit('getGameStatus', { gameId: currentGameId });
+                    }
                 }
             });
 
             // Listen for player list changes (joins, leaves, deaths affecting status)
             socket.on('playerListUpdated', (data) => {
                 console.log('Received playerListUpdated event');
-                 // Assuming this event is broadcast to the correct game room (gameId)
-                 if (data && data.players) {
+                 // Ensure the update is for the current game
+                 if (data && data.gameId === currentGameId && data.players) {
                     setAliveCount(data.players);
                  }
             });
@@ -433,24 +441,29 @@
             // Listen for player death events specifically (can also use playerListUpdated)
             socket.on('playerDied', (data) => {
                 console.log('Received playerDied event for player:', data.playerId);
-                 // We could decrement here, but fetching status or using playerListUpdated is safer
-                 // Requesting status ensures consistency
-                 socket.emit('getGameStatus', { gameId: currentGameId });
+                 // Ensure the update is for the current game
+                 if (data && data.gameId === currentGameId) {
+                    // We could decrement here, but fetching status or using playerListUpdated is safer
+                    // Requesting status ensures consistency
+                    socket.emit('getGameStatus', { gameId: currentGameId });
+                 }
             });
 
 
             // Listen for game end
             socket.on('gameEnded', (data) => {
                 console.log('Received gameEnded event');
-                // Assuming this event is broadcast to the correct game room (gameId)
-                stopClientTimer();
-                // Update final state
-                if (data.players) setAliveCount(data.players);
-                if (initialBossHealth > 0) setDragonHealth(data.bossHealth);
-                // Optionally display win/loss message
-                const resultMessage = data.playersWin ? "Players Win!" : "Dragon Wins!";
-                console.log(`Game Over: ${resultMessage}`);
-                // You could update the UI further here (e.g., show a banner)
+                 // Ensure the update is for the current game
+                 if (data && data.gameId === currentGameId) {
+                    stopClientTimer();
+                    // Update final state
+                    if (data.players) setAliveCount(data.players);
+                    if (initialBossHealth > 0) setDragonHealth(data.bossHealth);
+                    // Optionally display win/loss message
+                    const resultMessage = data.playersWin ? "Players Win!" : "Dragon Wins!";
+                    console.log(`Game Over: ${resultMessage}`);
+                    // You could update the UI further here (e.g., show a banner)
+                 }
             });
 
             // Handle potential errors from the server
@@ -460,9 +473,17 @@
                 stopClientTimer();
             });
 
+            // --- Button Event Listener ---
+            forceStartButton.addEventListener('click', () => {
+                // IDs are already checked at the top, so they should exist here
+                console.log(`Force start button clicked for game: ${currentGameId}`);
+                socket.emit('forceStart', { gameId: currentGameId });
+            });
+
         }); // End DOMContentLoaded
 
     </script>
+
 
 </body>
 </html>
