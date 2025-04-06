@@ -798,13 +798,12 @@
           opacity: 0.8,
         });
 
-        // Create the laser line
-        const laser = new THREE.Line(laserGeometry, laserMaterial);
-        scene.add(laser);
-
         // Add glow effect for hits
         if (hit) {
           // Create a point light at the dragon position to simulate impact
+          // Create the laser line
+          const laser = new THREE.Line(laserGeometry, laserMaterial);
+          scene.add(laser);
           const impactLight = new THREE.PointLight(0xff4500, 2, 1);
           impactLight.position.copy(endPosition);
           scene.add(impactLight);
