@@ -968,39 +968,13 @@
     }
 
     function showGameEndUI(data) {
-      const gameOverUI = document.createElement("div");
-      gameOverUI.style.position = "fixed";
-      gameOverUI.style.top = "50%";
-      gameOverUI.style.left = "50%";
-      gameOverUI.style.transform = "translate(-50%, -50%)";
-      gameOverUI.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
-      gameOverUI.style.color = "white";
-      gameOverUI.style.padding = "30px";
-      gameOverUI.style.borderRadius = "15px";
-      gameOverUI.style.textAlign = "center";
-      gameOverUI.style.zIndex = "1000";
 
-      gameOverUI.innerHTML = `
-        <h2>${data.playersWin ? "VICTORY!" : "DEFEAT!"}</h2>
-        <p>${data.playersWin
-          ? "The dragon has been defeated!"
-          : "The dragon was too powerful!"
-        }</p>
-        <p>Final boss health: ${data.bossHealth}</p>
-        <button id="returnToLobby" style="padding: 10px 20px; margin-top: 20px; background-color: #4285f4;
-                color: white; border: none; border-radius: 5px; cursor: pointer;">
-          Return to Lobby
-        </button>
-      `;
-
-      document.getElementById("overlay").appendChild(gameOverUI);
-
-      document
-        .getElementById("returnToLobby")
-        .addEventListener("click", () => {
-          window.location.href = "/game-lobby";
-        });
-    }
+      if (data.playersWin) {
+        window.location.href = "/endgameWIN.html";
+      } else {
+        window.location.href = "/endgameLOSS.html";
+      }
+    };
 
     // Animation loop
     function animate() {
