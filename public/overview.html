@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Game UI - HOLO Theme Stacked</title>
+    <!-- Add futuristic fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Audiowide&display=swap" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script> 
+    <style>
+        body {
+            font-family: "Orbitron", "Audiowide", sans-serif;
+            background-color: #021526;
+            margin: 0;
+            color: white;
+            position: relative;
+            min-height: 100vh;
+            overflow: hidden;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .grid-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.15;
+            pointer-events: none;
+        }
+
+        .content-wrapper {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .timer {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 1.8em;
+            font-weight: bold;
+            background-color: rgba(78, 154, 255, 0.2);
+            border: 1px solid #4e9aff;
+            padding: 5px 15px;
+            border-radius: 6px;
+            box-shadow: 0 0 10px rgba(78, 154, 255, 0.3);
+            letter-spacing: 1px;
+            z-index: 2;
+        }
+
+        .game-info {
+            display: flex;
+            flex-direction: column; /* Stack items vertically */
+            align-items: flex-start; /* Align items to the start (left) */ /* <-- CHANGED LINE */
+            justify-content: center;
+            gap: 30px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+
+        .info-block {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            /* Ensure blocks can align center within the column */
+            width: auto; /* Let content determine width */
+            justify-content: center; /* Center content within the block if needed */
+        }
+
+        /* Specific alignment for user info if needed */
+        .user-info {
+           /* Order can be changed if needed: order: -1; */
+        }
+        /* Specific alignment for dragon info if needed */
+        .dragon-info {
+           /* Order can be changed if needed: order: 1; */
+        }
+
+
+        .info-block img {
+            width: 45px;
+            height: 45px;
+            display: block;
+            filter: drop-shadow(0 0 4px rgba(0, 255, 255, 0.6));
+        }
+
+        .info-text {
+            font-size: 1.2em;
+            letter-spacing: 1px;
+            display: flex; /* Use flex to align text and number */
+            align-items: center; /* Vertically align text and number */
+            gap: 8px; /* Space between "Alive:" and the number */
+        }
+
+        .info-text span {
+            font-weight: bold;
+            color: #a7d1ff;
+            font-size: 1.3em;
+        }
+
+        /* Add this new rule */
+        .dragon-info {
+            width: 100%; /* Make the dragon block span the container width */
+        }
+
+        /* Dragon Health Bar Specifics */
+        /* Modify this existing rule */
+        .health-bar-container {
+            /* width: 250px; */ /* Remove or comment out the fixed width */
+            flex-grow: 1; /* Allow this element to grow and fill space */
+            height: 22px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid #4e9aff;
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: 0 0 8px rgba(78, 154, 255, 0.2);
+        }
+
+
+        .health-bar {
+            width: 100%;
+            height: 100%;
+            background-color: #e11d48;
+            background-image: linear-gradient(to bottom, #ff416c, #e11d48);
+            transition: width 0.3s ease-in-out;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            /* .game-info flex-direction is already column, no change needed */
+            .game-info {
+                 gap: 25px; /* Slightly reduce gap */
+            }
+            .timer {
+                font-size: 1.5em;
+                padding: 4px 10px;
+                top: 10px;
+                right: 10px;
+            }
+             .info-block img {
+                width: 40px;
+                height: 40px;
+            }
+            .info-text {
+                font-size: 1.1em;
+            }
+             .info-text span {
+                font-size: 1.2em;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- SVG Grid Background -->
+    <svg
+      class="grid-background"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 1000 1000"
+      preserveAspectRatio="xMidYMid slice"
+    >
+      <defs>
+        <pattern id="gridPattern" width="50" height="50" patternUnits="userSpaceOnUse">
+          <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#4e9aff" stroke-width="0.5"/>
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#gridPattern)" />
+    </svg>
+
+    <!-- Timer Display -->
+    <div class="timer">
+        <span id="time-left">90</span>s
+    </div>
+
+    <!-- Content Wrapper -->
+    <div class="content-wrapper">
+
+        <!-- Main Game Info Area -->
+        <div class="game-info">
+
+            <!-- User Info (Appears first in HTML, so on top) -->
+            <div class="info-block user-info">
+                <img src="assets/user.png" alt="User Icon">
+                <div class="info-text">
+                    Alive: <span id="alive-count">10</span>
+                </div>
+            </div>
+
+            <!-- Dragon Info (Appears second, so below user info) -->
+            <div class="info-block dragon-info">
+                <img src="assets/dragon.png" alt="Dragon Icon">
+                <div class="health-bar-container">
+                    <div class="health-bar" id="dragon-health"></div>
+                </div>
+            </div>
+
+        </div>
+
+    </div> <!-- End Content Wrapper -->
+
+    <script>
+        const timeLeftElement = document.getElementById('time-left');
+        const aliveCountElement = document.getElementById('alive-count');
+        const healthBar = document.getElementById('dragon-health');
+
+        let timerInterval = null;
+        let initialBossHealth = 0; // To calculate percentage
+        let currentGameId = null; // Store the game ID
+
+        // --- Helper Functions ---
+        function updateTimerDisplay(seconds) {
+            timeLeftElement.textContent = Math.max(0, Math.floor(seconds));
+        }
+
+        function startClientTimer(durationSeconds) {
+            clearInterval(timerInterval); // Clear any existing timer
+            let secondsRemaining = durationSeconds;
+            updateTimerDisplay(secondsRemaining);
+
+            timerInterval = setInterval(() => {
+                secondsRemaining--;
+                updateTimerDisplay(secondsRemaining);
+                if (secondsRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    console.log("Client timer finished.");
+                    // Server's gameEnded event will handle the final state
+                }
+            }, 1000);
+        }
+
+        function stopClientTimer() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+
+        function setDragonHealth(currentHealth) {
+            if (initialBossHealth <= 0) {
+                // Avoid division by zero, maybe show 0% or 100% based on context
+                healthBar.style.width = currentHealth > 0 ? '100%' : '0%';
+                return;
+            }
+            const percentage = Math.max(0, Math.min(100, (currentHealth / initialBossHealth) * 100));
+            healthBar.style.width = percentage + '%';
+            console.log(`Updating health: ${currentHealth}/${initialBossHealth} (${percentage}%)`);
+        }
+
+        function setAliveCount(players) {
+            // Filter players who are not dead and not marked as disconnected (if applicable)
+            const alivePlayers = players.filter(p => !p.isDead && !p.disconnected);
+            aliveCountElement.textContent = alivePlayers.length;
+            console.log(`Updating alive count: ${alivePlayers.length}`);
+        }
+
+        function updateGameDisplay(gameData) {
+            console.log("Received game data:", gameData);
+            if (!gameData || !gameData.players) {
+                console.error("Invalid game data received");
+                return;
+            }
+
+            // Set initial health if not set yet (important for percentage calculation)
+            // The server sets bossHealth when the game starts (moves to calibration/active)
+            if (initialBossHealth === 0 && gameData.bossHealth > 0) {
+                 initialBossHealth = gameData.bossHealth;
+                 console.log(`Initial boss health set to: ${initialBossHealth}`);
+            }
+
+            setAliveCount(gameData.players);
+
+            // Only update health if initial health is known
+            if (initialBossHealth > 0) {
+                setDragonHealth(gameData.bossHealth);
+            } else if (gameData.status === 'setup' || gameData.status === 'calibration') {
+                 // If game hasn't started, show full health visually
+                 healthBar.style.width = '100%';
+            } else {
+                 // If game is active but initial health somehow unknown, show 0
+                 healthBar.style.width = '0%';
+            }
+
+
+            // --- Timer Management based on Status ---
+            if (gameData.status === 'active' && !timerInterval) {
+                // If game is active and client timer isn't running, start it.
+                // NOTE: This relies on the server's 90-second duration.
+                // For perfect sync, the server would need to send remaining time.
+                console.log("Game is active, starting client timer.");
+                startClientTimer(90); // Assuming 90 seconds game duration
+            } else if (gameData.status === 'finished') {
+                console.log("Game finished, stopping client timer.");
+                stopClientTimer();
+                // Optionally display final time or message
+                // updateTimerDisplay(0); // Show 0 if game ended early
+            } else if (gameData.status === 'setup' || gameData.status === 'calibration') {
+                // If game is in setup/calibration, ensure timer is stopped and reset display
+                stopClientTimer();
+                updateTimerDisplay(90); // Reset to initial time display
+            }
+        }
+
+
+        // --- Socket.IO Connection and Event Handling ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get gameId from URL query parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            currentGameId = urlParams.get('gameId');
+
+            if (!currentGameId) {
+                console.error("No gameId found in URL!");
+                // Handle error: display message, redirect, etc.
+                document.body.innerHTML = "<h1>Error: Game ID not specified.</h1>";
+                return;
+            }
+
+            console.log(`Connecting to Socket.IO for game: ${currentGameId}`);
+            const socket = io(); // Connect to the server
+
+            socket.on('connect', () => {
+                console.log('Connected to server with socket ID:', socket.id);
+                // Request the current game status once connected
+                console.log(`Requesting status for game ${currentGameId}`);
+                socket.emit('getGameStatus', { gameId: currentGameId });
+            });
+
+            socket.on('disconnect', () => {
+                console.log('Disconnected from server.');
+                stopClientTimer();
+                // Optionally display a disconnected message
+            });
+
+            socket.on('connect_error', (err) => {
+                console.error('Connection Error:', err);
+                stopClientTimer();
+                // Optionally display an error message
+            });
+
+            // Listen for the initial/updated game status
+            socket.on('gameStatus', (data) => {
+                console.log('Received gameStatus event');
+                if (data && data.id === currentGameId) {
+                    updateGameDisplay(data);
+                } else if (data && data.id !== currentGameId) {
+                    console.warn(`Received status for wrong game ID: ${data.id}. Expected: ${currentGameId}`);
+                } else {
+                     console.error("Received invalid gameStatus data:", data);
+                }
+            });
+
+             // Listen specifically for when the game starts the 'active' phase
+            socket.on('gameStarted', (data) => {
+                console.log('Received gameStarted event');
+                 if (data && data.gameId === currentGameId) {
+                    // Set initial health when game starts actively
+                    initialBossHealth = data.bossHealth;
+                    console.log(`Game started! Initial boss health: ${initialBossHealth}`);
+                    setDragonHealth(data.bossHealth);
+                    setAliveCount(data.players);
+                    startClientTimer(90); // Start timer when game becomes active
+                }
+            });
+
+
+            // Listen for boss health updates
+            socket.on('bossHealthUpdated', (data) => {
+                console.log('Received bossHealthUpdated event');
+                // Assuming this event is broadcast to the correct game room (gameId)
+                if (initialBossHealth > 0) { // Ensure we have the base health
+                    setDragonHealth(data.health);
+                } else {
+                    // If initial health isn't set, maybe request full status again?
+                    console.warn("Received health update but initial health is unknown. Requesting full status.");
+                    socket.emit('getGameStatus', { gameId: currentGameId });
+                }
+            });
+
+            // Listen for player list changes (joins, leaves, deaths affecting status)
+            socket.on('playerListUpdated', (data) => {
+                console.log('Received playerListUpdated event');
+                 // Assuming this event is broadcast to the correct game room (gameId)
+                 if (data && data.players) {
+                    setAliveCount(data.players);
+                 }
+            });
+
+            // Listen for player death events specifically (can also use playerListUpdated)
+            socket.on('playerDied', (data) => {
+                console.log('Received playerDied event for player:', data.playerId);
+                 // We could decrement here, but fetching status or using playerListUpdated is safer
+                 // Requesting status ensures consistency
+                 socket.emit('getGameStatus', { gameId: currentGameId });
+            });
+
+
+            // Listen for game end
+            socket.on('gameEnded', (data) => {
+                console.log('Received gameEnded event');
+                // Assuming this event is broadcast to the correct game room (gameId)
+                stopClientTimer();
+                // Update final state
+                if (data.players) setAliveCount(data.players);
+                if (initialBossHealth > 0) setDragonHealth(data.bossHealth);
+                // Optionally display win/loss message
+                const resultMessage = data.playersWin ? "Players Win!" : "Dragon Wins!";
+                console.log(`Game Over: ${resultMessage}`);
+                // You could update the UI further here (e.g., show a banner)
+            });
+
+            // Handle potential errors from the server
+            socket.on('gameStatusError', (error) => {
+                console.error('Server Error (gameStatusError):', error.message);
+                document.body.innerHTML = `<h1>Error: ${error.message}</h1>`;
+                stopClientTimer();
+            });
+
+        }); // End DOMContentLoaded
+
+    </script>
+
+</body>
+</html>

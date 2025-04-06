@@ -699,15 +699,11 @@ app.get('/game-setup', (req, res) => {
   res.sendFile(join(__dirname, 'public', 'game-setup.html'));
 });
 
-// Serve game calibration page
-app.get('/game-calibration', (req, res) => {
-  res.sendFile(join(__dirname, 'public', 'game-calibration.html'));
+app.get('/overview', (req, res) => {
+  res.sendFile(join(__dirname, 'public', 'overview.html'));
 });
 
-// Serve game play page
-app.get('/game-play', (req, res) => {
-  res.sendFile(join(__dirname, 'public', 'game-play.html'));
-});
+
 
 // Start the server
 const PORT = process.env.PORT || 3000;
