@@ -246,7 +246,7 @@ io.on('connection', (socket) => {
   });
 
   // Listen for start game requests (begins calibration phase)
-  socket.on('startGame', ({ gameId }) => {
+  socket.on('startGame', ({ gameId, playerId }) => {
     if (!activeGames[gameId]) {
       socket.emit('startGameError', { message: 'Game not found' });
       return;
@@ -266,7 +266,7 @@ io.on('connection', (socket) => {
     activeGames[gameId].bossHealth = activeGames[gameId].players.length * 30;
 
     // Notify all players to go to calibration page
-    io.to(gameId).emit('goToCalibrationPage', { gameId: gameId });
+    io.to(gameId).emit('goToCalibrationPage', {});
 
     console.log(`Game ${gameId} entered calibration phase by host ${hostPlayer.name}`);
   });

@@ -450,8 +450,13 @@
                 alert('The game is starting!');
             });
 
-            socket.on('goToCalibrationPage', function (data) {
-                window.location.href = '/calibrate.html';
+            socket.on('goToCalibrationPage', function () {
+               
+                const playerId = currentPlayerId;
+                const calibrationUrl = `/calibrate.html?gameId=${gameId}&playerId=${playerId}`;
+
+                console.log('Redirecting to:', calibrationUrl);
+                window.location.href = calibrationUrl;
             });
 
             // Setup refresh button
@@ -468,7 +473,7 @@
 
             // Setup start game button
             startGameBtn.addEventListener('click', function () {
-                socket.emit('startGame', { gameId });
+                socket.emit('startGame', { gameId, currentPlayerId});
             });
 
             // Error handling for socket events
