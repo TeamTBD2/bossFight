@@ -167,7 +167,7 @@
             font-size: 14px;
             z-index: 999;
             text-align: center;
-            display: flex;
+            display: none;
         }
 
         /* Responsive adjustments */
@@ -301,10 +301,23 @@
         }
 
         function setAliveCount(players) {
-            // Filter players who are not dead and not marked as disconnected (if applicable)
-            const alivePlayers = players.filter(p => !p.isDead && !p.disconnected);
-            aliveCountElement.textContent = alivePlayers.length;
-            console.log(`Updating alive count: ${alivePlayers.length}`);
+            if (players) {
+
+                // Check if current player exists in the list
+                const currentPlayer = players.find(p => p.id === currentPlayerId);
+                if (currentPlayer && !currentPlayer.disconnected) {
+                    // Notify server only if the player isn't already marked as disconnected
+                    socket.emit("disconnectPlayer", {
+                        gameId: currentGameId,
+                        playerId: currentPlayerId
+                    });
+                }
+                currentPlayer.disconnected = true;
+                // Filter players who are not dead and not marked as disconnected
+                const alivePlayers = players.filter(p => !p.isDead && !p.disconnected);
+                aliveCountElement.textContent = alivePlayers.length;
+                console.log(`Updating alive count: ${alivePlayers.length}`);
+            }
         }
 
         function updateGameDisplay(gameData) {
@@ -361,6 +374,28 @@
             const urlParams = new URLSearchParams(window.location.search);
             currentGameId = urlParams.get('gameId');
             currentPlayerId = urlParams.get('playerId'); // <-- Added playerId extraction
+
+            fetch(`/api/game/${currentGameId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (!data.success) {
+                        console.error("Game not found");
+                        return;
+                    }
+
+                    const players = data.game.players;
+                    // Find the host
+                    const hostPlayer = players.find(p => p.isHost);
+                    if (hostPlayer) {
+                        if (hostPlayer.id === currentPlayerId) {
+                            document.getElementById('forceStart1').style.display = 'flex';
+                        }
+                        // You can now use hostPlayer.id as the host's ID
+                    } else {
+                        console.warn("No host found in this game");
+                    }
+                })
+                .catch(err => console.error("Error fetching game data:", err));
 
             // --- Initial Checks ---
             if (!currentGameId) {
@@ -464,6 +499,7 @@
                 if (data && data.gameId === currentGameId) {
                     // We could decrement here, but fetching status or using playerListUpdated is safer
                     // Requesting status ensures consistency
+                    setAliveCount(data.players);
                     socket.emit('getGameStatus', { gameId: currentGameId });
                 }
             });
@@ -496,6 +532,7 @@
             forceStartButton.addEventListener('click', () => {
                 // IDs are already checked at the top, so they should exist here
                 console.log(`Force start button clicked for game: ${currentGameId}`);
+                document.getElementById('forceStart1').style.display = 'none';
                 socket.emit('forceStart', { gameId: currentGameId });
             });
 

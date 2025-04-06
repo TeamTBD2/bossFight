@@ -274,6 +274,28 @@ io.on('connection', (socket) => {
     console.log(`Game ${gameId} entered calibration phase by host ${hostPlayer.name}`);
   });
 
+  socket.on('disconnectPlayer', ({ gameId, playerId }) => {
+    if (!activeGames[gameId]) return;
+
+    const player = activeGames[gameId].players.find(p => p.id === playerId);
+    if (player) {
+      player.disconnected = true;
+      player.disconnectedAt = new Date();
+
+      // Notify other players about the updated status
+      io.to(gameId).emit('playerListUpdated', {
+        players: activeGames[gameId].players.map(p => ({
+          id: p.id,
+          name: p.name,
+          isHost: p.isHost,
+          isReady: p.isReady,
+          isDead: p.isDead,
+          disconnected: p.disconnected
+        }))
+      });
+    }
+  });
+
   // Player is ready after calibration
   socket.on('playerReady', ({ gameId, playerId }) => {
     if (!activeGames[gameId] || activeGames[gameId].status !== 'calibration') {
@@ -293,7 +315,8 @@ io.on('connection', (socket) => {
 
 
     // Check if all players are ready
-    const allReady = activeGames[gameId].players.every(p => p.isReady);
+    console.log(activeGames[gameId].players);
+    const allReady = activeGames[gameId].players.filter(p => !p.disconnected).every(p => p.isReady);
     if (allReady) {
       console.log("EVERYONE IS READY!!");
       // If all players are ready, start the actual game
@@ -356,6 +379,7 @@ io.on('connection', (socket) => {
 
     // Broadcast to all clients that this player has died
     io.to(gameId).emit('playerDied', {
+      gameId: gameId,
       playerId: playerId
     });
 
