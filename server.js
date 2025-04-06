@@ -327,6 +327,7 @@ io.on('connection', (socket) => {
 
       // Broadcast updated boss health
       io.to(gameId).emit('bossHealthUpdated', {
+        gameId: gameId,
         health: activeGames[gameId].bossHealth
       });
 
@@ -367,7 +368,7 @@ io.on('connection', (socket) => {
   // Force start
   socket.on('forceStart', (data) => {
     console.log("FORCING START");
-    
+
     const gameId = data.gameId; // Get the gameId from the emitted object
     startActualGame(gameId);
   });
@@ -451,7 +452,7 @@ io.on('connection', (socket) => {
 
 // Helper function to start the actual game after calibration
 function startActualGame(gameId) {
-  console.log("activeGames[gameId]:"+activeGames[gameId]);
+  console.log("activeGames[gameId]:" + activeGames[gameId]);
   if (!activeGames[gameId]) return;
 
   // Update game status
@@ -475,7 +476,7 @@ function startActualGame(gameId) {
     }))
   });
   console.log("emitted gameStarted");
-  
+
   // Start dragon attack timer (every 10 seconds)
   activeGames[gameId].gameTimers.dragonAttack = setInterval(() => {
     dragonAttack(gameId);

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,8 +8,9 @@
     <!-- Add futuristic fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Audiowide&display=swap" rel="stylesheet">
-    <script src="/socket.io/socket.io.js"></script> 
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Audiowide&display=swap"
+        rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
     <style>
         body {
             font-family: "Orbitron", "Audiowide", sans-serif;
@@ -64,8 +66,11 @@
 
         .game-info {
             display: flex;
-            flex-direction: column; /* Stack items vertically */
-            align-items: flex-start; /* Align items to the start (left) */ /* <-- CHANGED LINE */
+            flex-direction: column;
+            /* Stack items vertically */
+            align-items: flex-start;
+            /* Align items to the start (left) */
+            /* <-- CHANGED LINE */
             justify-content: center;
             gap: 30px;
             width: 100%;
@@ -78,17 +83,20 @@
             align-items: center;
             gap: 15px;
             /* Ensure blocks can align center within the column */
-            width: auto; /* Let content determine width */
-            justify-content: center; /* Center content within the block if needed */
+            width: auto;
+            /* Let content determine width */
+            justify-content: center;
+            /* Center content within the block if needed */
         }
 
         /* Specific alignment for user info if needed */
         .user-info {
-           /* Order can be changed if needed: order: -1; */
+            /* Order can be changed if needed: order: -1; */
         }
+
         /* Specific alignment for dragon info if needed */
         .dragon-info {
-           /* Order can be changed if needed: order: 1; */
+            /* Order can be changed if needed: order: 1; */
         }
 
 
@@ -102,9 +110,12 @@
         .info-text {
             font-size: 1.2em;
             letter-spacing: 1px;
-            display: flex; /* Use flex to align text and number */
-            align-items: center; /* Vertically align text and number */
-            gap: 8px; /* Space between "Alive:" and the number */
+            display: flex;
+            /* Use flex to align text and number */
+            align-items: center;
+            /* Vertically align text and number */
+            gap: 8px;
+            /* Space between "Alive:" and the number */
         }
 
         .info-text span {
@@ -115,14 +126,17 @@
 
         /* Add this new rule */
         .dragon-info {
-            width: 100%; /* Make the dragon block span the container width */
+            width: 100%;
+            /* Make the dragon block span the container width */
         }
 
         /* Dragon Health Bar Specifics */
         /* Modify this existing rule */
         .health-bar-container {
-            /* width: 250px; */ /* Remove or comment out the fixed width */
-            flex-grow: 1; /* Allow this element to grow and fill space */
+            /* width: 250px; */
+            /* Remove or comment out the fixed width */
+            flex-grow: 1;
+            /* Allow this element to grow and fill space */
             height: 22px;
             background-color: rgba(255, 255, 255, 0.1);
             border: 1px solid #4e9aff;
@@ -154,49 +168,51 @@
             z-index: 999;
             text-align: center;
             display: flex;
-            }
+        }
 
         /* Responsive adjustments */
         @media (max-width: 600px) {
+
             /* .game-info flex-direction is already column, no change needed */
             .game-info {
-                 gap: 25px; /* Slightly reduce gap */
+                gap: 25px;
+                /* Slightly reduce gap */
             }
+
             .timer {
                 font-size: 1.5em;
                 padding: 4px 10px;
                 top: 10px;
                 right: 10px;
             }
-             .info-block img {
+
+            .info-block img {
                 width: 40px;
                 height: 40px;
             }
+
             .info-text {
                 font-size: 1.1em;
             }
-             .info-text span {
+
+            .info-text span {
                 font-size: 1.2em;
             }
         }
-
     </style>
 </head>
+
 <body>
 
     <!-- SVG Grid Background -->
-    <svg
-      class="grid-background"
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 1000 1000"
-      preserveAspectRatio="xMidYMid slice"
-    >
-      <defs>
-        <pattern id="gridPattern" width="50" height="50" patternUnits="userSpaceOnUse">
-          <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#4e9aff" stroke-width="0.5"/>
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#gridPattern)" />
+    <svg class="grid-background" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"
+        preserveAspectRatio="xMidYMid slice">
+        <defs>
+            <pattern id="gridPattern" width="50" height="50" patternUnits="userSpaceOnUse">
+                <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#4e9aff" stroke-width="0.5" />
+            </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#gridPattern)" />
     </svg>
 
     <!-- Timer Display -->
@@ -205,7 +221,7 @@
     </div>
     <div id="forceStart1">
         <button id="forceStartButton1">Start</button>
-      </div>
+    </div>
 
     <!-- Content Wrapper -->
     <div class="content-wrapper">
@@ -273,6 +289,7 @@
         }
 
         function setDragonHealth(currentHealth) {
+            console.log(currentHealth);
             if (initialBossHealth <= 0) {
                 // Avoid division by zero, maybe show 0% or 100% based on context
                 healthBar.style.width = currentHealth > 0 ? '100%' : '0%';
@@ -300,8 +317,8 @@
             // Set initial health if not set yet (important for percentage calculation)
             // The server sets bossHealth when the game starts (moves to calibration/active)
             if (initialBossHealth === 0 && gameData.bossHealth > 0) {
-                 initialBossHealth = gameData.bossHealth;
-                 console.log(`Initial boss health set to: ${initialBossHealth}`);
+                initialBossHealth = gameData.bossHealth;
+                console.log(`Initial boss health set to: ${initialBossHealth}`);
             }
 
             setAliveCount(gameData.players);
@@ -310,11 +327,11 @@
             if (initialBossHealth > 0) {
                 setDragonHealth(gameData.bossHealth);
             } else if (gameData.status === 'setup' || gameData.status === 'calibration') {
-                 // If game hasn't started, show full health visually
-                 healthBar.style.width = '100%';
+                // If game hasn't started, show full health visually
+                healthBar.style.width = '100%';
             } else {
-                 // If game is active but initial health somehow unknown, show 0
-                 healthBar.style.width = '0%';
+                // If game is active but initial health somehow unknown, show 0
+                healthBar.style.width = '0%';
             }
 
 
@@ -397,14 +414,14 @@
                 } else if (data && data.id !== currentGameId) {
                     console.warn(`Received status for wrong game ID: ${data.id}. Expected: ${currentGameId}`);
                 } else {
-                     console.error("Received invalid gameStatus data:", data);
+                    console.error("Received invalid gameStatus data:", data);
                 }
             });
 
-             // Listen specifically for when the game starts the 'active' phase
+            // Listen specifically for when the game starts the 'active' phase
             socket.on('gameStarted', (data) => {
                 console.log('Received gameStarted event');
-                 if (data && data.gameId === currentGameId) {
+                if (data && data.gameId === currentGameId) {
                     // Set initial health when game starts actively
                     initialBossHealth = data.bossHealth;
                     console.log(`Game started! Initial boss health: ${initialBossHealth}`);
@@ -416,9 +433,11 @@
 
             // Listen for boss health updates
             socket.on('bossHealthUpdated', (data) => {
-                console.log('Received bossHealthUpdated event');
+                console.log('Received bossHealthUpdated event' + data.health);
+                console.log(data && data.gameId === currentGameId);
                 // Ensure the update is for the current game
                 if (data && data.gameId === currentGameId) {
+                    console.log("passed the check for updating hp...")
                     if (initialBossHealth > 0) { // Ensure we have the base health
                         setDragonHealth(data.health);
                     } else {
@@ -432,29 +451,29 @@
             // Listen for player list changes (joins, leaves, deaths affecting status)
             socket.on('playerListUpdated', (data) => {
                 console.log('Received playerListUpdated event');
-                 // Ensure the update is for the current game
-                 if (data && data.gameId === currentGameId && data.players) {
+                // Ensure the update is for the current game
+                if (data && data.gameId === currentGameId && data.players) {
                     setAliveCount(data.players);
-                 }
+                }
             });
 
             // Listen for player death events specifically (can also use playerListUpdated)
             socket.on('playerDied', (data) => {
                 console.log('Received playerDied event for player:', data.playerId);
-                 // Ensure the update is for the current game
-                 if (data && data.gameId === currentGameId) {
+                // Ensure the update is for the current game
+                if (data && data.gameId === currentGameId) {
                     // We could decrement here, but fetching status or using playerListUpdated is safer
                     // Requesting status ensures consistency
                     socket.emit('getGameStatus', { gameId: currentGameId });
-                 }
+                }
             });
 
 
             // Listen for game end
             socket.on('gameEnded', (data) => {
                 console.log('Received gameEnded event');
-                 // Ensure the update is for the current game
-                 if (data && data.gameId === currentGameId) {
+                // Ensure the update is for the current game
+                if (data && data.gameId === currentGameId) {
                     stopClientTimer();
                     // Update final state
                     if (data.players) setAliveCount(data.players);
@@ -463,7 +482,7 @@
                     const resultMessage = data.playersWin ? "Players Win!" : "Dragon Wins!";
                     console.log(`Game Over: ${resultMessage}`);
                     // You could update the UI further here (e.g., show a banner)
-                 }
+                }
             });
 
             // Handle potential errors from the server
@@ -486,4 +505,5 @@
 
 
 </body>
+
 </html>
