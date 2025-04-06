@@ -130,6 +130,7 @@ io.on('connection', (socket) => {
 
     // Notify all players in the game about the updated player list
     io.to(gameId).emit('playerListUpdated', {
+      gameId: gameId,
       players: activeGames[gameId].players.map(p => ({
         id: p.id,
         name: p.name,
