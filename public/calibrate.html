@@ -641,7 +641,7 @@
 
     function createPlayerVisual(playerId, playerName, angle, distance) {
       // Create a visual representation for this player
-      const playerGeometry = new THREE.CylinderGeometry(0.2, 0.2, 0.5, 8);
+      const playerGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.05, 8);
       const playerMaterial = new THREE.MeshStandardMaterial({ color: 0x0088ff });
       const playerMesh = new THREE.Mesh(playerGeometry, playerMaterial);
 
