@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { v4 as uuidv4 } from 'uuid'; // For generating unique game IDs
 import { Server } from 'socket.io';
+import { log } from 'console';
 
 // Get current file directory with ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -329,6 +330,7 @@ io.on('connection', (socket) => {
         health: activeGames[gameId].bossHealth
       });
 
+
       // Check if boss is defeated
       if (activeGames[gameId].bossHealth <= 0) {
         endGame(gameId, true); // Players win
@@ -364,6 +366,8 @@ io.on('connection', (socket) => {
   });
   // Force start
   socket.on('forceStart', (data) => {
+    console.log("FORCING START");
+    
     const gameId = data.gameId; // Get the gameId from the emitted object
     startActualGame(gameId);
   });
@@ -447,7 +451,7 @@ io.on('connection', (socket) => {
 
 // Helper function to start the actual game after calibration
 function startActualGame(gameId) {
-  console.log(activeGames[gameId]);
+  console.log("activeGames[gameId]:"+activeGames[gameId]);
   if (!activeGames[gameId]) return;
 
   // Update game status
@@ -470,7 +474,8 @@ function startActualGame(gameId) {
       isDead: p.isDead || false
     }))
   });
-
+  console.log("emitted gameStarted");
+  
   // Start dragon attack timer (every 10 seconds)
   activeGames[gameId].gameTimers.dragonAttack = setInterval(() => {
     dragonAttack(gameId);

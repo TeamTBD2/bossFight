@@ -141,6 +141,21 @@
             box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.4);
         }
 
+        #forceStart1 {
+            position: fixed;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 999;
+            text-align: center;
+            display: flex;
+            }
+
         /* Responsive adjustments */
         @media (max-width: 600px) {
             /* .game-info flex-direction is already column, no change needed */
@@ -188,6 +203,9 @@
     <div class="timer">
         <span id="time-left">90</span>s
     </div>
+    <div id="forceStart1">
+        <button id="forceStartButton1">Start</button>
+      </div>
 
     <!-- Content Wrapper -->
     <div class="content-wrapper">
@@ -216,6 +234,8 @@
     </div> <!-- End Content Wrapper -->
 
     <script>
+        
+
         const timeLeftElement = document.getElementById('time-left');
         const aliveCountElement = document.getElementById('alive-count');
         const healthBar = document.getElementById('dragon-health');
@@ -376,6 +396,17 @@
                 }
             });
 
+            //////////////////////////////////////////////////////////////////////////////
+            document.getElementById('forceStartButton1').addEventListener('click', () => {
+                if (!currentGameId) {
+                    alert('Missing game or player information!');
+                    return;
+                }
+                console.log(currentGameId);
+                socket.emit('forceStart', { gameId: currentGameId });
+            }); 
+
+            ////////////////////////////////////////////////////////////////////////////////
 
             // Listen for boss health updates
             socket.on('bossHealthUpdated', (data) => {
