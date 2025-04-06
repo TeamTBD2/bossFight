@@ -896,7 +896,7 @@
         </button>
       `;
 
-      document.body.appendChild(gameOverUI);
+      document.getElementById("overlay").appendChild(gameOverUI);
 
       document.getElementById('returnToLobby').addEventListener('click', () => {
         window.location.href = '/game-lobby';
