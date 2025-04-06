@@ -25,6 +25,7 @@
       pointer-events: none;
       z-index: 999;
       pointer-events: auto;
+      display: none;
     }
 
     #ar-ui {
@@ -355,6 +356,7 @@
     }
 
     function startAR() {
+      document.getElementById('overlay').style.display = 'flex';
       const sessionInit = {
         optionalFeatures: ['dom-overlay'],
         domOverlay: { root: document.getElementById('overlay') },
