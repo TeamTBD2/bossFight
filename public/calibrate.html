@@ -683,6 +683,7 @@
 
       // Find the player in local array
       const localPlayers = window.gameState.localPlayers;
+      console.log(localPlayers);
       const attackingPlayer = localPlayers.find(p => p.id === playerId);
 
       // if (!attackingPlayer) return;
@@ -717,27 +718,27 @@
       // Get the position of the attacking player
       let startPosition;
 
-      // if (attackingPlayer.isSelf) {
-      //   // If it's the player themselves (shouldn't happen based on early return, but just in case)
-      //   startPosition = new THREE.Vector3(0, 0, 0); // Use camera position
-      // } else {
-      //   // For other players, use their stored position
-      //   const playerMesh = scene.children.find(
-      //     child => child.userData && child.userData.playerId === attackingPlayer.id
-      //   );
+      if (attackingPlayer.isSelf) {
+        // If it's the player themselves (shouldn't happen based on early return, but just in case)
+        startPosition = camera.position; // Use camera position
+      } else {
+        // For other players, use their stored position
+        const playerMesh = scene.children.find(
+          child => child.userData && child.userData.playerId === attackingPlayer.id
+        );
 
-      //   if (playerMesh) {
-      //     startPosition = playerMesh.position.clone();
-      //   } else {
-      //     // If no mesh, use the stored position
-      //     startPosition = new THREE.Vector3(
-      //       attackingPlayer.position.x,
-      //       attackingPlayer.position.y,
-      //       attackingPlayer.position.z
-      //     );
-      //   }
-      // }
-      startPosition = camera.position;
+        if (playerMesh) {
+          startPosition = playerMesh.position.clone();
+        } else {
+          // If no mesh, use the stored position
+          startPosition = new THREE.Vector3(
+            attackingPlayer.position.x,
+            attackingPlayer.position.y,
+            attackingPlayer.position.z
+          );
+        }
+      }
+      // startPosition = camera.position;
 
       // Create end position for the dragon
       // const endPosition = new THREE.Vector3(
