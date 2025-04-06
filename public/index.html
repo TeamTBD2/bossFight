@@ -18,7 +18,7 @@
             position: relative;
             overflow: hidden;
         }
-
+    
         .grid-background {
             position: absolute;
             top: 0;
@@ -28,7 +28,7 @@
             z-index: 0;
             opacity: 0.15;
         }
-
+    
         .container {
             display: flex;
             flex-direction: column;
@@ -38,11 +38,11 @@
             position: relative;
             z-index: 1;
         }
-
+    
         .logo {
             margin-bottom: 50px;
         }
-
+    
         .logo div {
             font-size: 8rem;
             font-weight: 800;
@@ -55,14 +55,14 @@
             -webkit-text-fill-color: transparent;
             margin: 0;
         }
-
+    
         .button-container {
             display: flex;
             flex-direction: column;
             gap: 20px;
             width: 240px;
         }
-
+    
         button {
             background-color: rgba(78, 154, 255, 0.2);
             color: white;
@@ -77,28 +77,47 @@
             text-transform: uppercase;
             box-shadow: 0 0 15px rgba(78, 154, 255, 0.3);
         }
-
+    
         button:hover {
             background-color: rgba(78, 154, 255, 0.4);
             transform: translateY(-2px);
             box-shadow: 0 0 20px rgba(78, 154, 255, 0.5);
         }
-
+    
         #create-game {
             background-color: rgba(67, 160, 71, 0.2);
             border-color: #43a047;
             box-shadow: 0 0 15px rgba(67, 160, 71, 0.3);
         }
-
+    
         #create-game:hover {
             background-color: rgba(67, 160, 71, 0.4);
             box-shadow: 0 0 20px rgba(67, 160, 71, 0.5);
         }
-
-        /* Add futuristic font */
+    
+        /* Add futuristic fonts */
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Audiowide&display=swap');
+    
+        /* Responsive styles for smaller viewport heights */
+        @media (max-height: 700px) {
+            .logo {
+                margin-bottom: 20px;
+            }
+            .logo div {
+                font-size: 3rem; /* Reduce the logo font size */
+            }
+            .button-container {
+                width: 200px;
+                gap: 15px;
+            }
+            button {
+                padding: 10px 0;
+                font-size: 1em;
+            }
+        }
     </style>
+    
 </head>
 
 <body>
